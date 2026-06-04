@@ -1,0 +1,113 @@
+import { redirect } from "next/navigation";
+import { ProfileEditForm } from "@/components/profiles/profile-edit-form";
+import { ProfileCard } from "@/components/profiles/profile-card";
+import { SectionHeader } from "@/components/ui/section-header";
+import { ensureProfileForUser } from "@/lib/auth/profile";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export default async function MePage({
+  searchParams
+}: {
+  searchParams?: { error?: string; saved?: string };
+}) {
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  await ensureProfileForUser(user);
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("avatar_url,bio,display_name,twitter_handle")
+    .eq("id", user.id)
+    .single();
+
+  const { data: typeSystemRows } = await supabase
+    .from("type_systems")
+    .select("id,code,name")
+    .eq("is_active", true)
+    .order("position", { ascending: true })
+    .order("name", { ascending: true });
+
+  const { data: typeValueRows } = await supabase
+    .from("type_values")
+    .select("id,type_system_id,code,name")
+    .eq("is_active", true)
+    .order("position", { ascending: true })
+    .order("name", { ascending: true });
+
+  const { data: userTypeRows } = await supabase
+    .from("user_types")
+    .select("type_system_id,type_value_id")
+    .eq("user_id", user.id);
+
+  const typeSystems = typeSystemRows ?? [];
+  const typeValues = typeValueRows ?? [];
+  const userTypes = userTypeRows ?? [];
+  const displayName = profile?.display_name ?? "Typring user";
+  const handle = profile?.twitter_handle ?? "unknown";
+  const bio = profile?.bio ?? "";
+  const currentTypeValueIds = new Map(
+    userTypes.map((userType) => [userType.type_system_id, userType.type_value_id])
+  );
+  const previewTypes = userTypes
+    .map((userType) => {
+      const system = typeSystems.find(
+        (typeSystem) => typeSystem.id === userType.type_system_id
+      );
+      const value = typeValues.find(
+        (typeValue) => typeValue.id === userType.type_value_id
+      );
+
+      if (!system || !value) {
+        return null;
+      }
+
+      return {
+        system: system.name,
+        value: value.name || value.code
+      };
+    })
+    .filter((type): type is { system: string; value: string } => type !== null);
+
+  return (
+    <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[1fr_380px]">
+      <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
+        <SectionHeader
+          eyebrow="My profile"
+          title="プロフィール編集"
+          description="類型システムごとに、自己申告の類型を1つ選べます。選択肢はSupabaseのマスタから読み込みます。"
+        />
+        {searchParams?.saved ? (
+          <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
+            保存しました。
+          </p>
+        ) : null}
+        {searchParams?.error ? (
+          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {searchParams.error}
+          </p>
+        ) : null}
+        <ProfileEditForm
+          bio={bio}
+          currentTypeValueIds={currentTypeValueIds}
+          displayName={displayName}
+          typeSystems={typeSystems}
+          typeValues={typeValues}
+        />
+      </section>
+      <ProfileCard
+        avatarUrl={profile?.avatar_url ?? null}
+        bio={bio || "自己紹介はまだ設定されていません。"}
+        displayName={displayName}
+        handle={handle}
+        types={previewTypes}
+      />
+    </div>
+  );
+}
