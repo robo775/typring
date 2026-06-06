@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { ProfileEditForm } from "@/components/profiles/profile-edit-form";
 import { ProfileCard } from "@/components/profiles/profile-card";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -16,7 +16,23 @@ export default async function MePage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login?error=not_authenticated&next=/me");
+    return (
+      <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-md flex-col justify-center px-4 py-12">
+        <section className="rounded-2xl border border-white bg-white/88 p-6 shadow-soft">
+          <SectionHeader
+            eyebrow="マイページ"
+            title="ログインが必要です"
+            description="プロフィールカードを作成・編集するには、Xアカウントでログインしてください。"
+          />
+          <Link
+            className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5"
+            href="/login?next=/me"
+          >
+            Xでログイン
+          </Link>
+        </section>
+      </div>
+    );
   }
 
   await ensureProfileForUser(user);
