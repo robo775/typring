@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function grantAdminByHandle(formData: FormData) {
@@ -41,6 +42,7 @@ export async function grantAdminByHandle(formData: FormData) {
 export async function saveTypeSystem(formData: FormData) {
   const supabase = createSupabaseServerClient();
   const adminUserId = await requireAdmin();
+  const returnTo = getAdminReturnPath(getString(formData, "return_to"));
   const id = getString(formData, "id");
   const code = normalizeCode(getString(formData, "code"));
   const name = getString(formData, "name");
@@ -49,7 +51,7 @@ export async function saveTypeSystem(formData: FormData) {
   const isActive = formData.get("is_active") === "on";
 
   if (!code || !name) {
-    redirect("/admin?error=type_system_required");
+    redirect(withAdminMessage(returnTo, "error", "type_system_required"));
   }
 
   const payload = {
@@ -64,11 +66,11 @@ export async function saveTypeSystem(formData: FormData) {
     : await supabase.from("type_systems").insert(payload).select("id").single();
 
   if (result.error) {
-    redirect(`/admin?error=${encodeURIComponent(result.error.message)}`);
+    redirect(withAdminMessage(returnTo, "error", result.error.message));
   }
 
   if (!result.data) {
-    redirect("/admin?error=admin_save_failed");
+    redirect(withAdminMessage(returnTo, "error", "admin_save_failed"));
   }
 
   await logAdminAction({
@@ -79,6 +81,61 @@ export async function saveTypeSystem(formData: FormData) {
   });
   revalidatePath("/admin");
   revalidatePath("/handbook");
+  redirect(withAdminMessage(`/admin?system=${result.data.id}`, "saved", "1"));
+}
+
+export async function deleteTypeSystem(formData: FormData) {
+  const adminUserId = await requireAdmin();
+  const adminSupabase = createSupabaseAdminClient();
+  const id = getString(formData, "id");
+
+  if (!id) {
+    redirect("/admin?error=type_system_required");
+  }
+
+  const { error: voteError } = await adminSupabase
+    .from("type_votes")
+    .delete()
+    .eq("type_system_id", id);
+
+  if (voteError) {
+    redirect(`/admin?error=${encodeURIComponent(voteError.message)}`);
+  }
+
+  const { error: userTypeError } = await adminSupabase
+    .from("user_types")
+    .delete()
+    .eq("type_system_id", id);
+
+  if (userTypeError) {
+    redirect(`/admin?error=${encodeURIComponent(userTypeError.message)}`);
+  }
+
+  const { error: valueError } = await adminSupabase
+    .from("type_values")
+    .delete()
+    .eq("type_system_id", id);
+
+  if (valueError) {
+    redirect(`/admin?error=${encodeURIComponent(valueError.message)}`);
+  }
+
+  const { error: systemError } = await adminSupabase
+    .from("type_systems")
+    .delete()
+    .eq("id", id);
+
+  if (systemError) {
+    redirect(`/admin?error=${encodeURIComponent(systemError.message)}`);
+  }
+
+  await logAdminAction({
+    action: "delete_type_system",
+    adminUserId,
+    targetId: id,
+    targetTable: "type_systems"
+  });
+  revalidateAdminSurfaces();
   redirect("/admin?saved=1");
 }
 
@@ -126,6 +183,53 @@ export async function saveTypeValue(formData: FormData) {
   });
   revalidatePath("/admin");
   revalidatePath("/handbook");
+  redirect(withAdminMessage(returnTo, "saved", "1"));
+}
+
+export async function deleteTypeValue(formData: FormData) {
+  const adminUserId = await requireAdmin();
+  const adminSupabase = createSupabaseAdminClient();
+  const returnTo = getAdminReturnPath(getString(formData, "return_to"));
+  const id = getString(formData, "id");
+
+  if (!id) {
+    redirect(withAdminMessage(returnTo, "error", "type_value_required"));
+  }
+
+  const { error: voteError } = await adminSupabase
+    .from("type_votes")
+    .delete()
+    .eq("type_value_id", id);
+
+  if (voteError) {
+    redirect(withAdminMessage(returnTo, "error", voteError.message));
+  }
+
+  const { error: userTypeError } = await adminSupabase
+    .from("user_types")
+    .delete()
+    .eq("type_value_id", id);
+
+  if (userTypeError) {
+    redirect(withAdminMessage(returnTo, "error", userTypeError.message));
+  }
+
+  const { error: valueError } = await adminSupabase
+    .from("type_values")
+    .delete()
+    .eq("id", id);
+
+  if (valueError) {
+    redirect(withAdminMessage(returnTo, "error", valueError.message));
+  }
+
+  await logAdminAction({
+    action: "delete_type_value",
+    adminUserId,
+    targetId: id,
+    targetTable: "type_values"
+  });
+  revalidateAdminSurfaces();
   redirect(withAdminMessage(returnTo, "saved", "1"));
 }
 
@@ -244,4 +348,13 @@ function withAdminMessage(path: string, key: "error" | "saved", value: string) {
   const url = new URL(path, "http://localhost");
   url.searchParams.set(key, value);
   return `${url.pathname}${url.search}`;
+}
+
+function revalidateAdminSurfaces() {
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/handbook");
+  revalidatePath("/search");
+  revalidatePath("/stats");
+  revalidatePath("/users/[handle]", "page");
 }
