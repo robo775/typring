@@ -63,7 +63,7 @@ export default async function SearchPage({
       <SectionHeader
         eyebrow="検索"
         title="類型でユーザー検索"
-        description="ハンドル名検索と、複数の類型条件を組み合わせて検索できます。複数条件はAND検索です。"
+        description="Xハンドル名や類型の組み合わせからユーザーを探せます。複数条件を選ぶと、すべてに当てはまるユーザーを表示します。"
       />
       <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
         <SearchForm

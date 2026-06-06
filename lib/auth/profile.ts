@@ -10,7 +10,7 @@ export function getTwitterProfileFromUser(user: User): ProfileInsert {
   const metadata = user.user_metadata ?? {};
   const identities = user.identities ?? [];
   const twitterIdentity = identities.find(
-    (identity) => identity.provider === "twitter"
+    (identity) => identity.provider === "x" || identity.provider === "twitter"
   );
   const identityData = twitterIdentity?.identity_data ?? {};
 

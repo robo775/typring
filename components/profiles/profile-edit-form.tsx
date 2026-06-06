@@ -49,14 +49,14 @@ export function ProfileEditForm({
           defaultValue={bio}
           maxLength={500}
           name="bio"
-          placeholder="短い自己紹介を書いてください。"
+          placeholder="好きなこと、話したいこと、プロフィールに添えたい一言を書いてください。"
         />
       </label>
 
       <div className="grid gap-4">
         {typeSystems.length === 0 ? (
           <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
-            有効な類型システムがありません。Supabaseのマイグレーションとseedを適用してください。
+            選べる類型がまだありません。少し時間を置いてからもう一度お試しください。
           </p>
         ) : null}
         {typeSystems.map((system) => {

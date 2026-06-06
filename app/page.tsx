@@ -7,34 +7,102 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { getAdVisibility } from "@/lib/ads/viewer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+type CardType = {
+  system: string;
+  value: string;
+};
+
 export default async function HomePage() {
-  const showAds =
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      ? await getAdVisibility(createSupabaseServerClient())
-      : true;
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  const showAds = await getAdVisibility(supabase);
+  let profile:
+    | {
+        avatar_url: string | null;
+        bio: string | null;
+        display_name: string;
+        twitter_handle: string | null;
+      }
+    | null = null;
+  let types: CardType[] = [];
+
+  if (user) {
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("avatar_url,bio,display_name,twitter_handle")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    profile = profileRow;
+
+    const { data: typeSystemRows } = await supabase
+      .from("type_systems")
+      .select("id,name")
+      .eq("is_active", true);
+    const { data: typeValueRows } = await supabase
+      .from("type_values")
+      .select("id,code,name")
+      .eq("is_active", true);
+    const { data: userTypeRows } = await supabase
+      .from("user_types")
+      .select("type_system_id,type_value_id")
+      .eq("user_id", user.id);
+
+    const typeSystems = typeSystemRows ?? [];
+    const typeValues = typeValueRows ?? [];
+    types =
+      userTypeRows?.flatMap((row) => {
+        const system = typeSystems.find(
+          (typeSystem) => typeSystem.id === row.type_system_id
+        );
+        const value = typeValues.find(
+          (typeValue) => typeValue.id === row.type_value_id
+        );
+
+        if (!system || !value) {
+          return [];
+        }
+
+        return [
+          {
+            system: system.name,
+            value: value.name || value.code
+          }
+        ];
+      }) ?? [];
+  }
+
+  const cardProfile = profile ?? {
+    avatar_url: null,
+    bio: "ログインすると、自分の類型をまとめたプロフィールカードを作成できます。",
+    display_name: "Typring サンプル",
+    twitter_handle: "typring"
+  };
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-8 sm:py-12">
-      <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-        <div className="space-y-6">
+    <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-6 sm:gap-10 sm:py-12">
+      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+        <div className="space-y-5 sm:space-y-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-white bg-white/70 px-3 py-1 text-sm font-medium text-ringViolet shadow-sm">
             <Sparkles className="h-4 w-4" />
             Type + Ring
           </div>
           <div className="space-y-4">
-            <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-ink sm:text-5xl">
+            <h1 className="max-w-3xl text-3xl font-bold tracking-tight text-ink sm:text-5xl">
               類型でつながる、プロフィールカードSNS。
             </h1>
             <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-              自分の類型を登録して、見やすいプロフィールカードを作成。MBTI、エニアグラム、ソシオニクスなどの組み合わせから、近い感覚の人を探せます。
+              自分の類型を登録して、見やすいプロフィールカードを作成。気になる類型や近い組み合わせのユーザーも探せます。
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link
               className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5"
-              href="/login"
+              href={user ? "/me" : "/login"}
             >
-              Xでログイン
+              {user ? "プロフィールを編集" : "Xでログイン"}
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
@@ -46,11 +114,11 @@ export default async function HomePage() {
           </div>
         </div>
         <ProfileCard
-          avatarUrl={null}
-          bio="Typringのプロフィールカード例です。ログインすると、自分の類型カードを作成できます。"
-          displayName="Typring サンプル"
-          handle="typring"
-          types={[]}
+          avatarUrl={cardProfile.avatar_url}
+          bio={cardProfile.bio || "自己紹介はまだ設定されていません。"}
+          displayName={cardProfile.display_name}
+          handle={cardProfile.twitter_handle ?? "unknown"}
+          types={types}
         />
       </section>
 
@@ -58,17 +126,17 @@ export default async function HomePage() {
         <FeatureCard
           icon={<UserRound className="h-5 w-5" />}
           title="プロフィールカード"
-          body="自己申告の類型を、スクショしやすいカードで表示します。"
+          body="自分の類型と自己紹介を、スクショしやすいカードでまとめられます。"
         />
         <FeatureCard
           icon={<Search className="h-5 w-5" />}
-          title="類型検索"
-          body="ハンドル名や複数の類型条件からユーザーを探せます。"
+          title="ユーザー検索"
+          body="ハンドル名や類型の組み合わせから、気になるユーザーを探せます。"
         />
         <FeatureCard
           icon={<Sparkles className="h-5 w-5" />}
           title="ハンドブック"
-          body="類型ごとの説明と、該当ユーザー一覧を見られます。"
+          body="類型ごとの説明や、その類型を登録しているユーザーを見られます。"
         />
       </section>
 
@@ -76,10 +144,10 @@ export default async function HomePage() {
         <SectionHeader
           eyebrow="人気の類型"
           title="人気の類型"
-          description="類型タグはDBマスタから動的に表示されます。"
+          description="登録が増えると、よく選ばれている類型がここに表示されます。"
         />
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-4 text-sm text-slate-500">
-          Supabaseの初期データを投入すると、ここに類型タグが表示されます。
+          まだ表示できる人気データがありません。
         </div>
       </section>
 
@@ -111,4 +179,3 @@ function FeatureCard({
     </article>
   );
 }
-

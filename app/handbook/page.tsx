@@ -12,7 +12,7 @@ export default async function HandbookPage() {
       <SectionHeader
         eyebrow="ハンドブック"
         title="類型ハンドブック"
-        description="Typringのマスタデータから、類型システムと類型値を閲覧できます。"
+        description="気になる類型の説明や、その類型を登録しているユーザーを見られます。"
       />
       {typeSystems.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -24,14 +24,14 @@ export default async function HandbookPage() {
             >
               <h2 className="text-lg font-bold text-ink">{system.name}</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                {system.description ?? "類型値と登録ユーザーを確認できます。"}
+                {system.description ?? "類型の説明と登録ユーザーを確認できます。"}
               </p>
             </Link>
           ))}
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-sm text-slate-500">
-          有効な類型システムがありません。Supabaseのseedを適用してください。
+          まだ表示できるハンドブックがありません。
         </div>
       )}
     </div>

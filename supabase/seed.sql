@@ -121,14 +121,33 @@ with psychosophy(system_id, code, position) as (
   from public.type_systems
   cross join (
     values
-      ('FEVL', 10),
-      ('FVLE', 20),
-      ('FLEV', 30),
-      ('FLVE', 40),
-      ('VFEL', 50),
-      ('VELF', 60),
-      ('LFVE', 70),
-      ('LEVF', 80)
+      ('FEVL',  10),
+      ('FELV',  20),
+      ('FVEL',  30),
+      ('FVLE',  40),
+      ('FLEV',  50),
+      ('FLVE',  60),
+
+      ('EFVL',  70),
+      ('EFLV',  80),
+      ('EVFL',  90),
+      ('EVLF', 100),
+      ('ELFV', 110),
+      ('ELVF', 120),
+
+      ('VFEL', 130),
+      ('VFLE', 140),
+      ('VEFL', 150),
+      ('VELF', 160),
+      ('VLFE', 170),
+      ('VLEF', 180),
+
+      ('LFEV', 190),
+      ('LFVE', 200),
+      ('LEFV', 210),
+      ('LEVF', 220),
+      ('LVFE', 230),
+      ('LVEF', 240)
   ) as v(code, position)
   where type_systems.code = 'psychosophy'
 )

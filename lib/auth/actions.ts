@@ -12,7 +12,7 @@ export async function signInWithTwitter(formData?: FormData) {
     options: {
       redirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(next)}`
     },
-    provider: "twitter"
+    provider: "x"
   });
 
   if (error) {

@@ -60,7 +60,7 @@ export function SearchForm({
                 defaultValue={selectedTypeValueIds.get(system.id) ?? ""}
                 name={`type:${system.id}`}
               >
-                <option value="">指定なし</option>
+                <option value="">指定しない</option>
                 {values.map((value) => (
                   <option key={value.id} value={value.id}>
                     {value.name || value.code}
@@ -74,7 +74,7 @@ export function SearchForm({
 
       {typeSystems.length === 0 ? (
         <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
-          有効な類型システムがありません。Supabaseのマイグレーションとseedを適用してください。
+          検索できる類型がまだありません。
         </p>
       ) : null}
 

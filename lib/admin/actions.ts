@@ -4,6 +4,40 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+export async function grantAdminByHandle(formData: FormData) {
+  const supabase = createSupabaseServerClient();
+  const adminUserId = await requireAdmin();
+  const handle = normalizeHandle(getString(formData, "twitter_handle"));
+
+  if (!handle) {
+    redirect("/admin?error=admin_handle_required");
+  }
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .update({ is_admin: true })
+    .eq("twitter_handle", handle)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    redirect(`/admin?error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (!profile) {
+    redirect("/admin?error=profile_not_found");
+  }
+
+  await logAdminAction({
+    action: "grant_admin",
+    adminUserId,
+    targetId: profile.id,
+    targetTable: "profiles"
+  });
+  revalidatePath("/admin");
+  redirect("/admin?saved=1");
+}
+
 export async function saveTypeSystem(formData: FormData) {
   const supabase = createSupabaseServerClient();
   const adminUserId = await requireAdmin();
@@ -51,6 +85,7 @@ export async function saveTypeSystem(formData: FormData) {
 export async function saveTypeValue(formData: FormData) {
   const supabase = createSupabaseServerClient();
   const adminUserId = await requireAdmin();
+  const returnTo = getAdminReturnPath(getString(formData, "return_to"));
   const id = getString(formData, "id");
   const typeSystemId = getString(formData, "type_system_id");
   const code = getString(formData, "code");
@@ -60,7 +95,7 @@ export async function saveTypeValue(formData: FormData) {
   const isActive = formData.get("is_active") === "on";
 
   if (!typeSystemId || !code || !name) {
-    redirect("/admin?error=type_value_required");
+    redirect(withAdminMessage(returnTo, "error", "type_value_required"));
   }
 
   const payload = {
@@ -76,11 +111,11 @@ export async function saveTypeValue(formData: FormData) {
     : await supabase.from("type_values").insert(payload).select("id").single();
 
   if (result.error) {
-    redirect(`/admin?error=${encodeURIComponent(result.error.message)}`);
+    redirect(withAdminMessage(returnTo, "error", result.error.message));
   }
 
   if (!result.data) {
-    redirect("/admin?error=admin_save_failed");
+    redirect(withAdminMessage(returnTo, "error", "admin_save_failed"));
   }
 
   await logAdminAction({
@@ -91,7 +126,7 @@ export async function saveTypeValue(formData: FormData) {
   });
   revalidatePath("/admin");
   revalidatePath("/handbook");
-  redirect("/admin?saved=1");
+  redirect(withAdminMessage(returnTo, "saved", "1"));
 }
 
 export async function saveFollowEdge(formData: FormData) {
@@ -195,4 +230,18 @@ function normalizeCode(code: string) {
 
 function normalizeHandle(handle: string) {
   return handle.replace(/^@/, "").toLowerCase();
+}
+
+function getAdminReturnPath(value: string) {
+  if (!value || !value.startsWith("/admin") || value.startsWith("//")) {
+    return "/admin";
+  }
+
+  return value;
+}
+
+function withAdminMessage(path: string, key: "error" | "saved", value: string) {
+  const url = new URL(path, "http://localhost");
+  url.searchParams.set(key, value);
+  return `${url.pathname}${url.search}`;
 }

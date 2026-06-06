@@ -6,7 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export default async function AdminPage({
   searchParams
 }: {
-  searchParams?: { error?: string; saved?: string };
+  searchParams?: { error?: string; saved?: string; system?: string };
 }) {
   const supabase = createSupabaseServerClient();
   const {
@@ -24,7 +24,7 @@ export default async function AdminPage({
     .maybeSingle();
 
   if (!profile?.is_admin) {
-    redirect("/");
+    redirect("/me?error=admin_required");
   }
 
   const { data: typeSystems } = await supabase
@@ -32,18 +32,28 @@ export default async function AdminPage({
     .select("id,code,name,description,position,is_active")
     .order("position", { ascending: true })
     .order("name", { ascending: true });
-  const { data: typeValues } = await supabase
-    .from("type_values")
-    .select("id,type_system_id,code,name,description,position,is_active")
-    .order("position", { ascending: true })
-    .order("name", { ascending: true });
+
+  const systems = typeSystems ?? [];
+  const requestedSystemId = searchParams?.system ?? "";
+  const selectedSystemId = systems.some((system) => system.id === requestedSystemId)
+    ? requestedSystemId
+    : systems[0]?.id ?? "";
+
+  const { data: typeValues } = selectedSystemId
+    ? await supabase
+        .from("type_values")
+        .select("id,type_system_id,code,name,description,position,is_active")
+        .eq("type_system_id", selectedSystemId)
+        .order("position", { ascending: true })
+        .order("name", { ascending: true })
+    : { data: [] };
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <SectionHeader
         eyebrow="管理"
         title="管理画面"
-        description="類型システムと類型値を管理します。削除ではなく無効化で運用します。"
+        description="類型システムを選択して、その配下の類型値だけを編集します。数が増えても追いやすい縦リスト構成です。"
       />
       {searchParams?.saved ? (
         <p className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
@@ -55,7 +65,11 @@ export default async function AdminPage({
           {searchParams.error}
         </p>
       ) : null}
-      <AdminForms typeSystems={typeSystems ?? []} typeValues={typeValues ?? []} />
+      <AdminForms
+        selectedSystemId={selectedSystemId}
+        typeSystems={systems}
+        typeValues={typeValues ?? []}
+      />
     </div>
   );
 }

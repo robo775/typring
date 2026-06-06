@@ -10,9 +10,11 @@ export default function LoginPage({
     <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-md flex-col justify-center px-4 py-12">
       <section className="rounded-2xl border border-white bg-white/88 p-6 shadow-soft">
         <div className="mb-6 space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight text-ink">Typringにログイン</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">
+            Typringにログイン
+          </h1>
           <p className="text-sm leading-6 text-slate-600">
-            X/Twitterアカウントでログインします。初回ログイン時にTypringプロフィールが作成されます。
+            Xアカウントでログインします。初回ログイン時にTypringプロフィールが作成されます。
           </p>
         </div>
         {searchParams?.error ? (

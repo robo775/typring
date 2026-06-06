@@ -16,7 +16,7 @@ export default async function MePage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/login?error=not_authenticated&next=/me");
   }
 
   await ensureProfileForUser(user);
@@ -79,9 +79,9 @@ export default async function MePage({
     <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[1fr_380px]">
       <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
         <SectionHeader
-          eyebrow="My profile"
+          eyebrow="マイページ"
           title="プロフィール編集"
-          description="類型システムごとに、自己申告の類型を1つ選べます。選択肢はSupabaseのマスタから読み込みます。"
+          description="表示名、自己紹介、あなたの類型を編集できます。選んだ内容はプロフィールカードに表示されます。"
         />
         {searchParams?.saved ? (
           <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
