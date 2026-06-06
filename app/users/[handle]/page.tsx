@@ -10,6 +10,18 @@ import { getAdVisibility } from "@/lib/ads/viewer";
 import { isMutualWithProfile } from "@/lib/mutuals/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+type UserTypeRow = {
+  type_system_id: string;
+  type_value_id: string;
+};
+
+type VoteSummaryRow = {
+  total_count: number;
+  type_system_id: string;
+  type_value_id: string;
+  vote_count: number;
+};
+
 export default async function UserProfilePage({
   params,
   searchParams
@@ -38,7 +50,7 @@ export default async function UserProfilePage({
     .select("type_system_id,type_value_id")
     .eq("user_id", profile.id);
 
-  const userTypes = userTypeRows ?? [];
+  const userTypes = (userTypeRows ?? []) as UserTypeRow[];
   const { data: activeTypeSystemRows } = await supabase
     .from("type_systems")
     .select("id,code,name")
@@ -83,7 +95,10 @@ export default async function UserProfilePage({
       : { data: [] };
 
   const currentVoteValueIds = new Map(
-    (ownVoteRows ?? []).map((vote) => [vote.type_system_id, vote.type_value_id])
+    ((ownVoteRows ?? []) as UserTypeRow[]).map((vote) => [
+      vote.type_system_id,
+      vote.type_value_id
+    ])
   );
 
   const profileTypes = userTypes
@@ -105,7 +120,8 @@ export default async function UserProfilePage({
       };
     })
     .filter((type): type is { system: string; value: string } => type !== null);
-  const voteSummaryItems = (voteSummaryRows ?? [])
+
+  const voteSummaryItems = ((voteSummaryRows ?? []) as VoteSummaryRow[])
     .map((vote) => {
       const system = activeTypeSystems.find(
         (typeSystem) => typeSystem.id === vote.type_system_id
@@ -135,6 +151,7 @@ export default async function UserProfilePage({
         voteCount: number;
       } => item !== null
     );
+
   const showAds = await getAdVisibility(supabase);
   const isMutual =
     user && user.id !== profile.id
@@ -214,7 +231,7 @@ export default async function UserProfilePage({
           slot={process.env.NEXT_PUBLIC_ADSENSE_PROFILE_SLOT}
         />
         <div className="rounded-2xl border border-white bg-white/88 p-5 text-sm text-slate-600 shadow-sm">
-          X相互表示とAI相性診断は、キャッシュや利用制限を前提に表示されます。
+          X相互表示とAI相性診断は、キャッシュと利用制限を前提に表示されます。
         </div>
       </section>
     </div>

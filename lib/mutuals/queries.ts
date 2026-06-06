@@ -2,12 +2,16 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type Supabase = ReturnType<typeof createSupabaseServerClient>;
 
+type MutualProfileIdRow = {
+  mutual_user_id: string;
+};
+
 export async function getMutualProfileIds(supabase: Supabase, userId: string) {
   const { data } = await supabase.rpc("get_x_mutual_profile_ids", {
     p_user_id: userId
   });
 
-  return (data ?? []).map((row) => row.mutual_user_id);
+  return ((data ?? []) as MutualProfileIdRow[]).map((row) => row.mutual_user_id);
 }
 
 export async function getMutualProfiles(supabase: Supabase, userId: string) {
@@ -94,4 +98,3 @@ export async function getProfileTypesForUsers(
 
   return profileTypesByUserId;
 }
-
