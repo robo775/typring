@@ -10,6 +10,7 @@ import { getTopVotedTypesForUsers } from "@/lib/votes/queries";
 type SearchParams = Record<string, string | string[] | undefined>;
 
 type ProfileResult = {
+  allow_external_typing?: boolean;
   avatar_url: string | null;
   bio: string | null;
   display_name: string;
@@ -80,8 +81,13 @@ export default async function SearchPage({
               bio={profile.bio ?? "このユーザーはまだ自己紹介を書いていません。"}
               displayName={profile.display_name}
               handle={profile.twitter_handle ?? "unknown"}
+              showVotedTypes={profile.allow_external_typing ?? true}
               types={profileTypesByUserId.get(profile.id) ?? []}
-              votedTypes={votedTypesByUserId.get(profile.id) ?? []}
+              votedTypes={
+                profile.allow_external_typing === false
+                  ? []
+                  : votedTypesByUserId.get(profile.id) ?? []
+              }
             />
           );
 
@@ -160,7 +166,7 @@ async function searchProfiles({
 
   let query = supabase
     .from("profiles")
-    .select("id,avatar_url,bio,display_name,twitter_handle")
+    .select("id,allow_external_typing,avatar_url,bio,display_name,twitter_handle")
     .not("twitter_handle", "is", null)
     .order("created_at", { ascending: false })
     .limit(24);

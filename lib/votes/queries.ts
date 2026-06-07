@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type DisplayType = {
   system: string;
+  systemPosition: number;
   value: string;
 };
 
@@ -97,10 +98,20 @@ export async function getTopVotedTypesForUsers(
 
         return {
           system: system.name,
+          systemPosition: system.position,
           value: value.name || value.code
         };
       })
-      .filter((type): type is DisplayType => type !== null);
+      .filter((type): type is DisplayType => type !== null)
+      .sort((a, b) => {
+        const positionDiff = (a.systemPosition ?? 0) - (b.systemPosition ?? 0);
+
+        if (positionDiff !== 0) {
+          return positionDiff;
+        }
+
+        return a.system.localeCompare(b.system);
+      });
 
     result.set(summary.userId, votedTypes);
   }
@@ -119,9 +130,7 @@ function getTopRowsBySystem(rows: VoteSummaryRow[]) {
     }
   }
 
-  return Array.from(topBySystem.values()).sort((a, b) =>
-    a.type_system_id.localeCompare(b.type_system_id)
-  );
+  return Array.from(topBySystem.values());
 }
 
 function isBetterVoteRow(candidate: VoteSummaryRow, current: VoteSummaryRow) {

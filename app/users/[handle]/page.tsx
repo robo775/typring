@@ -97,16 +97,21 @@ export default async function UserProfilePage({
 
   const activeTypeSystems = activeTypeSystemRows ?? [];
   const activeTypeValues = activeTypeValueRows ?? [];
-  const profileTypes = userTypes
-    .map((userType) => {
-      const system = activeTypeSystems.find(
-        (typeSystem) => typeSystem.id === userType.type_system_id
+  const profileTypes = activeTypeSystems
+    .map((system) => {
+      const userType = userTypes.find(
+        (type) => type.type_system_id === system.id
       );
+
+      if (!userType) {
+        return null;
+      }
+
       const value = activeTypeValues.find(
         (typeValue) => typeValue.id === userType.type_value_id
       );
 
-      if (!system || !value) {
+      if (!value) {
         return null;
       }
 
@@ -186,6 +191,7 @@ export default async function UserProfilePage({
 
   const showAds = await getAdVisibility(supabase);
   const showExternalTyping = visibilitySettings?.allow_external_typing ?? true;
+  const visibleVotedTypes = showExternalTyping ? votedTypes : [];
   const showAiCompatibility =
     process.env.NEXT_PUBLIC_ENABLE_AI_COMPATIBILITY === "true";
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -217,8 +223,9 @@ export default async function UserProfilePage({
         bio={profile.bio ?? "このユーザーはまだ自己紹介を書いていません。"}
         displayName={profile.display_name}
         handle={profile.twitter_handle ?? handle}
+        showVotedTypes={showExternalTyping}
         types={profileTypes}
-        votedTypes={votedTypes}
+        votedTypes={visibleVotedTypes}
       />
       <div className="lg:hidden">
         <AdSlot
@@ -234,6 +241,7 @@ export default async function UserProfilePage({
           displayName={profile.display_name}
           profileUrl={profileUrl}
           types={profileTypes}
+          votedTypes={visibleVotedTypes}
         />
         {searchParams?.voted ? (
           <StatusMessage>他者診断の投票を保存しました。</StatusMessage>

@@ -3,22 +3,31 @@
 import { Copy, ExternalLink } from "lucide-react";
 import { useState } from "react";
 
+type ProfileType = {
+  system: string;
+  value: string;
+};
+
 type ProfileShareActionsProps = {
   displayName: string;
   profileUrl: string;
-  types: { system: string; value: string }[];
+  types: ProfileType[];
+  votedTypes?: ProfileType[];
 };
 
 export function ProfileShareActions({
   displayName,
   profileUrl,
-  types
+  types,
+  votedTypes = []
 }: ProfileShareActionsProps) {
   const [copied, setCopied] = useState<string | null>(null);
-  const typeLine = types.length > 0 ? types.map((type) => type.value).join(" / ") : "";
+  const selfTypeLine = formatTypeLine(types);
+  const votedTypeLine = formatTypeLine(votedTypes);
   const shareText = [
-    `Typringで${displayName}さんの類型プロフィールを見つけました。`,
-    typeLine ? `類型: ${typeLine}` : "",
+    `Typringで${displayName}さんのプロフィールを見つけました。`,
+    selfTypeLine ? `自認: ${selfTypeLine}` : "",
+    votedTypeLine ? `他者診断: ${votedTypeLine}` : "",
     profileUrl,
     "#Typring #MBTI"
   ]
@@ -73,4 +82,10 @@ export function ProfileShareActions({
       ) : null}
     </section>
   );
+}
+
+function formatTypeLine(types: ProfileType[]) {
+  return types
+    .map((type) => `${type.system}: ${type.value}`)
+    .join(" / ");
 }

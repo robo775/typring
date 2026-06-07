@@ -75,16 +75,21 @@ export default async function MePage({
   const currentTypeValueIds = new Map(
     userTypes.map((userType) => [userType.type_system_id, userType.type_value_id])
   );
-  const previewTypes = userTypes
-    .map((userType) => {
-      const system = typeSystems.find(
-        (typeSystem) => typeSystem.id === userType.type_system_id
+  const previewTypes = typeSystems
+    .map((system) => {
+      const userType = userTypes.find(
+        (type) => type.type_system_id === system.id
       );
+
+      if (!userType) {
+        return null;
+      }
+
       const value = typeValues.find(
         (typeValue) => typeValue.id === userType.type_value_id
       );
 
-      if (!system || !value) {
+      if (!value) {
         return null;
       }
 
@@ -95,6 +100,8 @@ export default async function MePage({
     })
     .filter((type): type is { system: string; value: string } => type !== null);
   const votedTypes = await getTopVotedTypesForUser(supabase, user.id);
+  const showExternalTyping = visibilitySettings?.allow_external_typing ?? true;
+  const visibleVotedTypes = showExternalTyping ? votedTypes : [];
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[1fr_380px]">
@@ -139,8 +146,9 @@ export default async function MePage({
         bio={bio || "自己紹介はまだ設定されていません。"}
         displayName={displayName}
         handle={handle}
+        showVotedTypes={showExternalTyping}
         types={previewTypes}
-        votedTypes={votedTypes}
+        votedTypes={visibleVotedTypes}
       />
     </div>
   );

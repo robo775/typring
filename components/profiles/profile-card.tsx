@@ -13,6 +13,7 @@ type ProfileCardProps = {
   className?: string;
   displayName: string;
   handle: string;
+  showVotedTypes?: boolean;
   types: ProfileType[];
   votedTypes?: ProfileType[];
 };
@@ -23,6 +24,7 @@ export function ProfileCard({
   className,
   displayName,
   handle,
+  showVotedTypes = false,
   types,
   votedTypes = []
 }: ProfileCardProps) {
@@ -79,12 +81,14 @@ export function ProfileCard({
           label="自認"
           types={types}
         />
-        <TypeSection
-          emptyText="他者診断はまだ集まっていません。"
-          label="他者診断 1位"
-          muted
-          types={votedTypes}
-        />
+        {showVotedTypes ? (
+          <TypeSection
+            emptyText="他者診断はまだ集まっていません。"
+            label="他者診断 1位"
+            muted
+            types={votedTypes}
+          />
+        ) : null}
       </div>
     </article>
   );

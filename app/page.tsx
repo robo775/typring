@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { ArrowRight, Search, Sparkles, UserRound } from "lucide-react";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { ProfileCard } from "@/components/profiles/profile-card";
-import { SectionHeader } from "@/components/ui/section-header";
 import { getAdVisibility } from "@/lib/ads/viewer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getTopVotedTypesForUser } from "@/lib/votes/queries";
@@ -25,6 +24,7 @@ export default async function HomePage({
   const showAds = await getAdVisibility(supabase);
   let profile:
     | {
+        allow_external_typing?: boolean;
         avatar_url: string | null;
         bio: string | null;
         display_name: string;
@@ -37,7 +37,7 @@ export default async function HomePage({
   if (user) {
     const { data: profileRow } = await supabase
       .from("profiles")
-      .select("avatar_url,bio,display_name,twitter_handle")
+      .select("allow_external_typing,avatar_url,bio,display_name,twitter_handle")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -82,6 +82,7 @@ export default async function HomePage({
   }
 
   const cardProfile = profile ?? {
+    allow_external_typing: true,
     avatar_url: null,
     bio: "ログインすると、自分の類型をまとめたプロフィールカードを作成できます。",
     display_name: "Typring サンプル",
@@ -130,8 +131,9 @@ export default async function HomePage({
           bio={cardProfile.bio || "自己紹介はまだ設定されていません。"}
           displayName={cardProfile.display_name}
           handle={cardProfile.twitter_handle ?? "unknown"}
+          showVotedTypes={cardProfile.allow_external_typing ?? true}
           types={types}
-          votedTypes={votedTypes}
+          votedTypes={cardProfile.allow_external_typing === false ? [] : votedTypes}
         />
       </section>
 
@@ -151,20 +153,6 @@ export default async function HomePage({
           title="他者診断"
           body="他のユーザーから見た類型予想を集めて、プロフィールカードに表示できます。"
         />
-      </section>
-
-      <section className="space-y-4">
-        <SectionHeader
-          eyebrow="Rankings"
-          title="他者診断ランキング"
-          description="みんなからどう見られているかを、投票数ベースで一覧できます。"
-        />
-        <Link
-          className="inline-flex items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-0.5"
-          href="/vote-rankings"
-        >
-          ランキングを見る
-        </Link>
       </section>
 
       <AdSlot
