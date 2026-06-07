@@ -12,7 +12,11 @@ type CardType = {
   value: string;
 };
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams
+}: {
+  searchParams?: { account_deleted?: string };
+}) {
   const supabase = createSupabaseServerClient();
   const {
     data: { user }
@@ -83,6 +87,11 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-6 sm:gap-10 sm:py-12">
+      {searchParams?.account_deleted ? (
+        <p className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-700">
+          アカウントを削除しました。ご利用ありがとうございました。
+        </p>
+      ) : null}
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
         <div className="space-y-5 sm:space-y-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-white bg-white/70 px-3 py-1 text-sm font-medium text-ringViolet shadow-sm">

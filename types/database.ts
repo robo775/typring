@@ -171,6 +171,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      profile_introductions: {
+        Row: {
+          author_user_id: string;
+          body: string;
+          created_at: string;
+          id: string;
+          target_user_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          author_user_id: string;
+          body: string;
+          created_at?: string;
+          id?: string;
+          target_user_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          author_user_id?: string;
+          body?: string;
+          created_at?: string;
+          id?: string;
+          target_user_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       social_accounts: {
         Row: {
           avatar_url: string | null;

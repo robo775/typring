@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeleteAccountSection } from "@/components/account/delete-account-section";
 import { ProfileEditForm } from "@/components/profiles/profile-edit-form";
 import { ProfileCard } from "@/components/profiles/profile-card";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -93,30 +94,33 @@ export default async function MePage({
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[1fr_380px]">
-      <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
-        <SectionHeader
-          eyebrow="マイページ"
-          title="プロフィール編集"
-          description="表示名、自己紹介、あなたの類型を編集できます。選んだ内容はプロフィールカードに表示されます。"
-        />
-        {searchParams?.saved ? (
-          <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
-            保存しました。
-          </p>
-        ) : null}
-        {searchParams?.error ? (
-          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {searchParams.error}
-          </p>
-        ) : null}
-        <ProfileEditForm
-          bio={bio}
-          currentTypeValueIds={currentTypeValueIds}
-          displayName={displayName}
-          typeSystems={typeSystems}
-          typeValues={typeValues}
-        />
-      </section>
+      <div className="space-y-6">
+        <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
+          <SectionHeader
+            eyebrow="マイページ"
+            title="プロフィール編集"
+            description="表示名、自己紹介、あなたの類型を編集できます。選んだ内容はプロフィールカードに表示されます。"
+          />
+          {searchParams?.saved ? (
+            <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
+              保存しました。
+            </p>
+          ) : null}
+          {searchParams?.error ? (
+            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {searchParams.error}
+            </p>
+          ) : null}
+          <ProfileEditForm
+            bio={bio}
+            currentTypeValueIds={currentTypeValueIds}
+            displayName={displayName}
+            typeSystems={typeSystems}
+            typeValues={typeValues}
+          />
+        </section>
+        <DeleteAccountSection />
+      </div>
       <ProfileCard
         avatarUrl={profile?.avatar_url ?? null}
         bio={bio || "自己紹介はまだ設定されていません。"}

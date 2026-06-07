@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
-import { ProfileCard } from "@/components/profiles/profile-card";
-import { SectionHeader } from "@/components/ui/section-header";
-import { MutualBadge } from "@/components/mutuals/mutual-badge";
-import { TypeVoteForm } from "@/components/votes/type-vote-form";
-import { TypeVoteSummary } from "@/components/votes/type-vote-summary";
+import type { ReactNode } from "react";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { CompatibilityPanel } from "@/components/compatibility/compatibility-panel";
+import { ProfileIntroductions } from "@/components/introductions/profile-introductions";
+import { MutualBadge } from "@/components/mutuals/mutual-badge";
+import { ProfileCard } from "@/components/profiles/profile-card";
+import { SectionHeader } from "@/components/ui/section-header";
+import { TypeVoteForm } from "@/components/votes/type-vote-form";
+import { TypeVoteSummary } from "@/components/votes/type-vote-summary";
 import { getAdVisibility } from "@/lib/ads/viewer";
 import { isMutualWithProfile } from "@/lib/mutuals/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -22,12 +24,35 @@ type VoteSummaryRow = {
   vote_count: number;
 };
 
+type IntroductionRow = {
+  author:
+    | {
+        display_name: string;
+        twitter_handle: string | null;
+      }
+    | {
+        display_name: string;
+        twitter_handle: string | null;
+      }[]
+    | null;
+  author_user_id: string;
+  body: string;
+  created_at: string;
+  id: string;
+  updated_at: string;
+};
+
 export default async function UserProfilePage({
   params,
   searchParams
 }: {
   params: { handle: string };
-  searchParams?: { error?: string; voted?: string };
+  searchParams?: {
+    error?: string;
+    introduction_deleted?: string;
+    introduced?: string;
+    voted?: string;
+  };
 }) {
   const supabase = createSupabaseServerClient();
   const handle = params.handle.replace(/^@/, "").toLowerCase();
@@ -49,8 +74,8 @@ export default async function UserProfilePage({
     .from("user_types")
     .select("type_system_id,type_value_id")
     .eq("user_id", profile.id);
-
   const userTypes = (userTypeRows ?? []) as UserTypeRow[];
+
   const { data: activeTypeSystemRows } = await supabase
     .from("type_systems")
     .select("id,code,name")
@@ -82,25 +107,6 @@ export default async function UserProfilePage({
 
   const typeSystems = typeSystemResult.data ?? [];
   const typeValues = typeValueResult.data ?? [];
-  const { data: voteSummaryRows } = await supabase.rpc("get_type_vote_summary", {
-    p_target_user_id: profile.id
-  });
-  const { data: ownVoteRows } =
-    user && user.id !== profile.id
-      ? await supabase
-          .from("type_votes")
-          .select("type_system_id,type_value_id")
-          .eq("target_user_id", profile.id)
-          .eq("voter_user_id", user.id)
-      : { data: [] };
-
-  const currentVoteValueIds = new Map(
-    ((ownVoteRows ?? []) as UserTypeRow[]).map((vote) => [
-      vote.type_system_id,
-      vote.type_value_id
-    ])
-  );
-
   const profileTypes = userTypes
     .map((userType) => {
       const system = typeSystems.find(
@@ -121,6 +127,24 @@ export default async function UserProfilePage({
     })
     .filter((type): type is { system: string; value: string } => type !== null);
 
+  const { data: voteSummaryRows } = await supabase.rpc("get_type_vote_summary", {
+    p_target_user_id: profile.id
+  });
+  const { data: ownVoteRows } =
+    user && user.id !== profile.id
+      ? await supabase
+          .from("type_votes")
+          .select("type_system_id,type_value_id")
+          .eq("target_user_id", profile.id)
+          .eq("voter_user_id", user.id)
+      : { data: [] };
+
+  const currentVoteValueIds = new Map(
+    ((ownVoteRows ?? []) as UserTypeRow[]).map((vote) => [
+      vote.type_system_id,
+      vote.type_value_id
+    ])
+  );
   const voteSummaryItems = ((voteSummaryRows ?? []) as VoteSummaryRow[])
     .map((vote) => {
       const system = activeTypeSystems.find(
@@ -151,6 +175,24 @@ export default async function UserProfilePage({
         voteCount: number;
       } => item !== null
     );
+
+  const { data: introductionRows } = await supabase
+    .from("profile_introductions")
+    .select("id,author_user_id,body,created_at,updated_at,author:profiles!profile_introductions_author_user_id_fkey(display_name,twitter_handle)")
+    .eq("target_user_id", profile.id)
+    .order("updated_at", { ascending: false });
+  const introductions = ((introductionRows ?? []) as unknown as IntroductionRow[]).map(
+    (introduction) => ({
+      author: Array.isArray(introduction.author)
+        ? introduction.author[0] ?? null
+        : introduction.author,
+      author_user_id: introduction.author_user_id,
+      body: introduction.body,
+      created_at: introduction.created_at,
+      id: introduction.id,
+      updated_at: introduction.updated_at
+    })
+  );
 
   const showAds = await getAdVisibility(supabase);
   const isMutual =
@@ -198,9 +240,13 @@ export default async function UserProfilePage({
           description="この人がどの類型に見えるか、匿名で投票できます。集計結果は割合で表示されます。"
         />
         {searchParams?.voted ? (
-          <p className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
-            投票を保存しました。
-          </p>
+          <StatusMessage>投票を保存しました。</StatusMessage>
+        ) : null}
+        {searchParams?.introduced ? (
+          <StatusMessage>紹介文を保存しました。</StatusMessage>
+        ) : null}
+        {searchParams?.introduction_deleted ? (
+          <StatusMessage>紹介文を削除しました。</StatusMessage>
         ) : null}
         {searchParams?.error ? (
           <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -217,6 +263,13 @@ export default async function UserProfilePage({
           typeValues={activeTypeValues}
         />
         <TypeVoteSummary items={voteSummaryItems} />
+        <ProfileIntroductions
+          currentUserId={user?.id ?? null}
+          handle={profile.twitter_handle ?? handle}
+          introductions={introductions}
+          isOwnProfile={user?.id === profile.id}
+          targetUserId={profile.id}
+        />
         <CompatibilityPanel
           handle={profile.twitter_handle ?? handle}
           isLoggedIn={Boolean(user)}
@@ -235,5 +288,13 @@ export default async function UserProfilePage({
         </div>
       </section>
     </div>
+  );
+}
+
+function StatusMessage({ children }: { children: ReactNode }) {
+  return (
+    <p className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
+      {children}
+    </p>
   );
 }
