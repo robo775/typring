@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowRight, Search, Sparkles, UserRound } from "lucide-react";
+import { ArrowRight, ClipboardList, Search, Sparkles, UserRound } from "lucide-react";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { ProfileCard } from "@/components/profiles/profile-card";
 import { getAdVisibility } from "@/lib/ads/viewer";
@@ -45,12 +45,14 @@ export default async function HomePage({
 
     const { data: typeSystemRows } = await supabase
       .from("type_systems")
-      .select("id,name")
-      .eq("is_active", true);
+      .select("id,name,position")
+      .eq("is_active", true)
+      .order("position", { ascending: true });
     const { data: typeValueRows } = await supabase
       .from("type_values")
-      .select("id,code,name")
-      .eq("is_active", true);
+      .select("id,code,name,position")
+      .eq("is_active", true)
+      .order("position", { ascending: true });
     const { data: userTypeRows } = await supabase
       .from("user_types")
       .select("type_system_id,type_value_id")
@@ -59,25 +61,27 @@ export default async function HomePage({
     const typeSystems = typeSystemRows ?? [];
     const typeValues = typeValueRows ?? [];
     types =
-      userTypeRows?.flatMap((row) => {
-        const system = typeSystems.find(
-          (typeSystem) => typeSystem.id === row.type_system_id
-        );
-        const value = typeValues.find(
-          (typeValue) => typeValue.id === row.type_value_id
-        );
+      userTypeRows
+        ?.flatMap((row) => {
+          const system = typeSystems.find(
+            (typeSystem) => typeSystem.id === row.type_system_id
+          );
+          const value = typeValues.find(
+            (typeValue) => typeValue.id === row.type_value_id
+          );
 
-        if (!system || !value) {
-          return [];
-        }
-
-        return [
-          {
-            system: system.name,
-            value: value.name || value.code
+          if (!system || !value) {
+            return [];
           }
-        ];
-      }) ?? [];
+
+          return [
+            {
+              system: system.name,
+              value: value.name || value.code
+            }
+          ];
+        })
+        .sort((a, b) => a.system.localeCompare(b.system)) ?? [];
     votedTypes = await getTopVotedTypesForUser(supabase, user.id);
   }
 
@@ -107,7 +111,7 @@ export default async function HomePage({
               類型でつながる、プロフィールカードSNS。
             </h1>
             <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-              自認タイプを登録して、見やすいプロフィールカードを作成。気になる類型や近い組み合わせのユーザーも探せます。
+              自認タイプを登録して、見やすいプロフィールカードを作成。気になる類型の組み合わせを探したり、アンケートを類型別に集計したりできます。
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -120,9 +124,9 @@ export default async function HomePage({
             </Link>
             <Link
               className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:border-ringTeal"
-              href="/handbook"
+              href="/polls"
             >
-              ハンドブックを見る
+              アンケートを見る
             </Link>
           </div>
         </div>
@@ -149,14 +153,14 @@ export default async function HomePage({
           body="ハンドル名や類型の組み合わせから、気になるユーザーを探せます。"
         />
         <FeatureCard
-          icon={<Sparkles className="h-5 w-5" />}
-          title="他者診断"
-          body="他のユーザーから見た類型予想を集めて、プロフィールカードに表示できます。"
+          icon={<ClipboardList className="h-5 w-5" />}
+          title="類型別アンケート"
+          body="回答結果をMBTIやエニアグラムなどの類型別に集計できます。"
         />
       </section>
 
       <AdSlot
-        label="ホーム広告枠"
+        label="ホーム 広告枠"
         show={showAds}
         slot={process.env.NEXT_PUBLIC_ADSENSE_HOME_SLOT}
       />

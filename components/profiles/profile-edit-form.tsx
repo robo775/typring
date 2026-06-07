@@ -19,7 +19,6 @@ type ProfileEditFormProps = {
   bio: string;
   currentTypeValueIds: Map<string, string>;
   displayName: string;
-  showQuizHistory: boolean;
   typeSystems: TypeSystemOption[];
   typeValues: TypeValueOption[];
 };
@@ -29,7 +28,6 @@ export function ProfileEditForm({
   bio,
   currentTypeValueIds,
   displayName,
-  showQuizHistory,
   typeSystems,
   typeValues
 }: ProfileEditFormProps) {
@@ -57,20 +55,12 @@ export function ProfileEditForm({
         />
       </label>
 
-      <div className="grid gap-3">
-        <ProfileCheckbox
-          defaultChecked={allowExternalTyping}
-          description="OFFにすると、プロフィール上の他者診断結果と投票フォームを非表示にします。"
-          name="allow_external_typing"
-          title="他ユーザーからの類型予想を受け付ける"
-        />
-        <ProfileCheckbox
-          defaultChecked={showQuizHistory}
-          description="OFFにすると、診断ページやプロフィールで最近遊んだ診断として表示されません。"
-          name="show_quiz_history"
-          title="診断履歴をプロフィールや診断ページに表示する"
-        />
-      </div>
+      <ProfileCheckbox
+        defaultChecked={allowExternalTyping}
+        description="OFFにすると、プロフィール上の他者診断結果と投票フォームを非表示にします。"
+        name="allow_external_typing"
+        title="他ユーザーからの類型予想を受け付ける"
+      />
 
       <div className="grid gap-4">
         {typeSystems.length === 0 ? (

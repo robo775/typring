@@ -46,7 +46,7 @@ export default async function MePage({
     .single();
   const { data: visibilitySettings } = await supabase
     .from("profiles")
-    .select("allow_external_typing,show_quiz_history")
+    .select("allow_external_typing")
     .eq("id", user.id)
     .maybeSingle();
   const { data: typeSystemRows } = await supabase
@@ -110,7 +110,7 @@ export default async function MePage({
           <SectionHeader
             eyebrow="マイページ"
             title="プロフィール編集"
-            description="表示名、自己紹介、あなたの自認タイプを編集できます。保存した内容はプロフィールカードに反映されます。"
+            description="表示名、自己紹介、自認タイプを編集できます。保存した内容はプロフィールカードに反映されます。"
           />
           {searchParams?.saved ? (
             <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
@@ -135,7 +135,6 @@ export default async function MePage({
             bio={bio}
             currentTypeValueIds={currentTypeValueIds}
             displayName={displayName}
-            showQuizHistory={visibilitySettings?.show_quiz_history ?? true}
             typeSystems={typeSystems}
             typeValues={typeValues}
           />

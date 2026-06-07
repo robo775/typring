@@ -44,14 +44,6 @@ type IntroductionRow = {
   updated_at: string;
 };
 
-type QuizHistoryRow = {
-  attempt_id: string;
-  created_at: string;
-  quiz_slug: string;
-  quiz_title: string;
-  result_name: string | null;
-};
-
 type ProfileType = {
   system: string;
   value: string;
@@ -214,30 +206,13 @@ export default async function UserProfilePage({
     })
   );
 
-  const { data: quizRows } = await supabase
-    .from("quizzes")
-    .select("id,slug,title,short_description,status")
+  const { data: createdPolls } = await supabase
+    .from("polls")
+    .select("id,slug,title,question,description,status")
     .eq("creator_user_id", profile.id)
     .eq("status", "published")
     .order("created_at", { ascending: false })
     .limit(6);
-  const createdQuizzes = await Promise.all(
-    (quizRows ?? []).map(async (quiz) => {
-      const { data } = await supabase.rpc("get_quiz_attempt_count", {
-        p_quiz_id: quiz.id
-      });
-
-      return {
-        ...quiz,
-        attemptCount: Number(data ?? 0)
-      };
-    })
-  );
-  const { data: quizHistoryRows } = await supabase.rpc("get_public_quiz_history", {
-    p_limit: 5,
-    p_user_id: profile.id
-  });
-  const quizHistories = (quizHistoryRows ?? []) as QuizHistoryRow[];
 
   const showAds = await getAdVisibility(supabase);
   const showExternalTyping = profile.allow_external_typing ?? true;
@@ -338,50 +313,28 @@ export default async function UserProfilePage({
           targetUserId={profile.id}
         />
         <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-ink">作成した診断</h2>
-          {createdQuizzes.length > 0 ? (
+          <h2 className="text-lg font-bold text-ink">作成したアンケート</h2>
+          {(createdPolls ?? []).length > 0 ? (
             <div className="mt-4 grid gap-3">
-              {createdQuizzes.map((quiz) => (
+              {(createdPolls ?? []).map((poll) => (
                 <a
                   className="rounded-xl border border-slate-100 bg-slate-50 p-4 transition hover:border-ringTeal"
-                  href={`/quizzes/${quiz.slug}`}
-                  key={quiz.id}
+                  href={`/polls/${poll.slug}`}
+                  key={poll.id}
                 >
-                  <p className="font-bold text-ink">{quiz.title}</p>
+                  <p className="font-bold text-ink">{poll.title}</p>
                   <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                    {quiz.short_description ?? "説明文はまだありません。"}
-                  </p>
-                  <p className="mt-2 text-xs font-semibold text-slate-400">
-                    {quiz.attemptCount}人が回答
+                    {poll.question}
                   </p>
                 </a>
               ))}
             </div>
           ) : (
             <p className="mt-3 text-sm text-slate-500">
-              公開中の診断はまだありません。
+              公開中のアンケートはまだありません。
             </p>
           )}
         </section>
-        {quizHistories.length > 0 ? (
-          <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
-            <h2 className="text-lg font-bold text-ink">最近遊んだ診断</h2>
-            <div className="mt-4 grid gap-3">
-              {quizHistories.map((history) => (
-                <a
-                  className="rounded-xl border border-slate-100 bg-slate-50 p-4 transition hover:border-ringTeal"
-                  href={`/quizzes/${history.quiz_slug}`}
-                  key={history.attempt_id}
-                >
-                  <p className="font-bold text-ink">{history.quiz_title}</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    結果: {history.result_name ?? "結果"}
-                  </p>
-                </a>
-              ))}
-            </div>
-          </section>
-        ) : null}
         {showAiCompatibility ? (
           <CompatibilityPanel
             handle={profile.twitter_handle ?? handle}

@@ -5,21 +5,22 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 type SearchParams = Record<string, string | string[] | undefined>;
 
 type TypeSystem = {
-  id: string;
   code: string;
+  id: string;
   name: string;
 };
 
 type TypeValue = {
-  id: string;
   code: string;
+  id: string;
   name: string;
   type_system_id: string;
 };
 
 export const metadata: Metadata = {
   title: "自認タイプ統計",
-  description: "Typringに登録された自認タイプの組み合わせをクロス集計で見られます。"
+  description:
+    "Typringに登録された自認タイプの組み合わせをクロス集計で見られます。"
 };
 
 export default async function StatsPage({
@@ -36,8 +37,7 @@ export default async function StatsPage({
     .order("name", { ascending: true });
 
   const typeSystems = (typeSystemRows ?? []) as TypeSystem[];
-  const rowSystemId =
-    getParam(searchParams, "row") || typeSystems[0]?.id || "";
+  const rowSystemId = getParam(searchParams, "row") || typeSystems[0]?.id || "";
   const colSystemId =
     getParam(searchParams, "col") ||
     typeSystems.find((system) => system.id !== rowSystemId)?.id ||
@@ -81,18 +81,14 @@ export default async function StatsPage({
       <SectionHeader
         eyebrow="Stats"
         title="自認タイプ統計"
-        description="2つの類型システムを選ぶと、登録ユーザーの自認タイプの組み合わせを一覧できます。各行で一番多い組み合わせは赤色で表示します。"
+        description="2つの類型システムを選ぶと、登録ユーザーの自認タイプの組み合わせを一覧できます。各行で一番多い組み合わせを赤色で表示します。"
       />
 
       <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
         <form className="grid gap-4 sm:grid-cols-[1fr_1fr_auto]" method="get">
           <label className="grid gap-2 text-sm font-semibold text-ink">
             縦軸
-            <select
-              className={selectClass}
-              defaultValue={rowSystemId}
-              name="row"
-            >
+            <select className={selectClass} defaultValue={rowSystemId} name="row">
               {typeSystems.map((system) => (
                 <option key={system.id} value={system.id}>
                   {system.name}
@@ -102,11 +98,7 @@ export default async function StatsPage({
           </label>
           <label className="grid gap-2 text-sm font-semibold text-ink">
             横軸
-            <select
-              className={selectClass}
-              defaultValue={colSystemId}
-              name="col"
-            >
+            <select className={selectClass} defaultValue={colSystemId} name="col">
               {typeSystems.map((system) => (
                 <option key={system.id} value={system.id}>
                   {system.name}
@@ -129,13 +121,13 @@ export default async function StatsPage({
         </div>
       ) : rowSystem.id === colSystem.id ? (
         <div className="rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-5 text-sm text-amber-800">
-          縦軸と横軸には別々の類型システムを選んでください。
+          縦軸と横軸には別の類型システムを選んでください。
         </div>
       ) : (
         <section className="overflow-hidden rounded-2xl border border-white bg-white/88 shadow-sm">
           <div className="border-b border-slate-100 p-5">
             <h2 className="text-lg font-bold text-ink">
-              {rowSystem.name} x {colSystem.name}
+              {rowSystem.name} × {colSystem.name}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               縦軸ごとに一番多い横軸の組み合わせを赤色で強調しています。
@@ -149,10 +141,7 @@ export default async function StatsPage({
                     {rowSystem.name}
                   </th>
                   {colValues.map((value) => (
-                    <th
-                      className="min-w-20 border-b border-slate-200 px-3 py-3 text-center"
-                      key={value.id}
-                    >
+                    <th className="min-w-20 border-b border-slate-200 px-3 py-3 text-center" key={value.id}>
                       {value.name || value.code}
                     </th>
                   ))}
@@ -237,10 +226,7 @@ async function buildTypeMatrix({
     .from("user_types")
     .select("user_id,type_system_id,type_value_id")
     .in("type_system_id", [rowSystemId, colSystemId]);
-  const typeByUser = new Map<
-    string,
-    { colValueId?: string; rowValueId?: string }
-  >();
+  const typeByUser = new Map<string, { colValueId?: string; rowValueId?: string }>();
 
   for (const row of data ?? []) {
     const entry = typeByUser.get(row.user_id) ?? {};
