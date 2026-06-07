@@ -16,6 +16,7 @@ export async function updateMyProfile(formData: FormData) {
 
   const displayName = getString(formData, "display_name");
   const bio = getString(formData, "bio");
+  const allowExternalTyping = formData.get("allow_external_typing") === "on";
 
   if (!displayName) {
     redirect("/me?error=display_name_required");
@@ -38,6 +39,7 @@ export async function updateMyProfile(formData: FormData) {
   const { error: profileError } = await supabase
     .from("profiles")
     .update({
+      allow_external_typing: allowExternalTyping,
       bio,
       display_name: displayName
     })

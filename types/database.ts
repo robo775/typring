@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          allow_external_typing: boolean;
           avatar_url: string | null;
           bio: string | null;
           created_at: string;
@@ -23,6 +24,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          allow_external_typing?: boolean;
           avatar_url?: string | null;
           bio?: string | null;
           created_at?: string;
@@ -35,6 +37,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          allow_external_typing?: boolean;
           avatar_url?: string | null;
           bio?: string | null;
           created_at?: string;

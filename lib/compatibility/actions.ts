@@ -9,6 +9,10 @@ const FEATURE = "compatibility";
 const DAILY_LIMIT = 3;
 
 export async function generateCompatibility(formData: FormData) {
+  if (process.env.NEXT_PUBLIC_ENABLE_AI_COMPATIBILITY !== "true") {
+    redirect("/?error=compatibility_disabled");
+  }
+
   const supabase = createSupabaseServerClient();
   const {
     data: { user }

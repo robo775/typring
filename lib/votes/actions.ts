@@ -25,6 +25,16 @@ export async function submitTypeVotes(formData: FormData) {
     redirect(`/users/${handle}?error=self_vote_not_allowed`);
   }
 
+  const { data: targetProfile } = await supabase
+    .from("profiles")
+    .select("allow_external_typing")
+    .eq("id", targetUserId)
+    .maybeSingle();
+
+  if (!targetProfile?.allow_external_typing) {
+    redirect(`/users/${handle}?error=external_typing_disabled`);
+  }
+
   const selections = Array.from(formData.entries())
     .filter(([key]) => key.startsWith("vote:"))
     .map(([key, value]) => ({

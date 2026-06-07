@@ -5,6 +5,7 @@ import { CompatibilityPanel } from "@/components/compatibility/compatibility-pan
 import { ProfileIntroductions } from "@/components/introductions/profile-introductions";
 import { MutualBadge } from "@/components/mutuals/mutual-badge";
 import { ProfileCard } from "@/components/profiles/profile-card";
+import { ProfileShareActions } from "@/components/profiles/profile-share-actions";
 import { SectionHeader } from "@/components/ui/section-header";
 import { TypeVoteForm } from "@/components/votes/type-vote-form";
 import { TypeVoteSummary } from "@/components/votes/type-vote-summary";
@@ -70,6 +71,12 @@ export default async function UserProfilePage({
     notFound();
   }
 
+  const { data: visibilitySettings } = await supabase
+    .from("profiles")
+    .select("allow_external_typing")
+    .eq("id", profile.id)
+    .maybeSingle();
+
   const { data: userTypeRows } = await supabase
     .from("user_types")
     .select("type_system_id,type_value_id")
@@ -99,7 +106,6 @@ export default async function UserProfilePage({
     typeSystemIds.length > 0
       ? await supabase.from("type_systems").select("id,name").in("id", typeSystemIds)
       : { data: [] };
-
   const typeValueResult =
     typeValueIds.length > 0
       ? await supabase.from("type_values").select("id,code,name").in("id", typeValueIds)
@@ -138,7 +144,6 @@ export default async function UserProfilePage({
           .eq("target_user_id", profile.id)
           .eq("voter_user_id", user.id)
       : { data: [] };
-
   const currentVoteValueIds = new Map(
     ((ownVoteRows ?? []) as UserTypeRow[]).map((vote) => [
       vote.type_system_id,
@@ -195,6 +200,11 @@ export default async function UserProfilePage({
   );
 
   const showAds = await getAdVisibility(supabase);
+  const showExternalTyping = visibilitySettings?.allow_external_typing ?? true;
+  const showAiCompatibility =
+    process.env.NEXT_PUBLIC_ENABLE_AI_COMPATIBILITY === "true";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const profileUrl = `${appUrl.replace(/\/$/, "")}/users/${profile.twitter_handle ?? handle}`;
   const isMutual =
     user && user.id !== profile.id
       ? await isMutualWithProfile({
@@ -204,7 +214,7 @@ export default async function UserProfilePage({
         })
       : false;
   const { data: latestCompatibility } =
-    user && user.id !== profile.id
+    showAiCompatibility && user && user.id !== profile.id
       ? await supabase
           .from("compatibility_results")
           .select("result_text")
@@ -234,10 +244,10 @@ export default async function UserProfilePage({
       </div>
       <section className="space-y-4">
         <MutualBadge isMutual={Boolean(isMutual)} />
-        <SectionHeader
-          eyebrow="Votes"
-          title="類型予想"
-          description="この人がどの類型に見えるか、匿名で投票できます。集計結果は割合で表示されます。"
+        <ProfileShareActions
+          displayName={profile.display_name}
+          profileUrl={profileUrl}
+          types={profileTypes}
         />
         {searchParams?.voted ? (
           <StatusMessage>投票を保存しました。</StatusMessage>
@@ -253,16 +263,25 @@ export default async function UserProfilePage({
             {searchParams.error}
           </p>
         ) : null}
-        <TypeVoteForm
-          currentVoteValueIds={currentVoteValueIds}
-          handle={profile.twitter_handle ?? handle}
-          isLoggedIn={Boolean(user)}
-          isOwnProfile={user?.id === profile.id}
-          targetUserId={profile.id}
-          typeSystems={activeTypeSystems}
-          typeValues={activeTypeValues}
-        />
-        <TypeVoteSummary items={voteSummaryItems} />
+        {showExternalTyping ? (
+          <>
+            <SectionHeader
+              eyebrow="Votes"
+              title="類型予想"
+              description="この人がどの類型に見えるか、匿名で投票できます。集計結果は割合で表示されます。"
+            />
+            <TypeVoteForm
+              currentVoteValueIds={currentVoteValueIds}
+              handle={profile.twitter_handle ?? handle}
+              isLoggedIn={Boolean(user)}
+              isOwnProfile={user?.id === profile.id}
+              targetUserId={profile.id}
+              typeSystems={activeTypeSystems}
+              typeValues={activeTypeValues}
+            />
+            <TypeVoteSummary items={voteSummaryItems} />
+          </>
+        ) : null}
         <ProfileIntroductions
           currentUserId={user?.id ?? null}
           handle={profile.twitter_handle ?? handle}
@@ -270,22 +289,21 @@ export default async function UserProfilePage({
           isOwnProfile={user?.id === profile.id}
           targetUserId={profile.id}
         />
-        <CompatibilityPanel
-          handle={profile.twitter_handle ?? handle}
-          isLoggedIn={Boolean(user)}
-          isOwnProfile={user?.id === profile.id}
-          latestResult={latestCompatibility?.result_text ?? null}
-          targetUserId={profile.id}
-        />
+        {showAiCompatibility ? (
+          <CompatibilityPanel
+            handle={profile.twitter_handle ?? handle}
+            isLoggedIn={Boolean(user)}
+            isOwnProfile={user?.id === profile.id}
+            latestResult={latestCompatibility?.result_text ?? null}
+            targetUserId={profile.id}
+          />
+        ) : null}
         <AdSlot
           className="hidden lg:block"
           label="プロフィール広告枠"
           show={showAds}
           slot={process.env.NEXT_PUBLIC_ADSENSE_PROFILE_SLOT}
         />
-        <div className="rounded-2xl border border-white bg-white/88 p-5 text-sm text-slate-600 shadow-sm">
-          X相互表示とAI相性診断は、キャッシュと利用制限を前提に表示されます。
-        </div>
       </section>
     </div>
   );

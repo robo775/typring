@@ -43,6 +43,11 @@ export default async function MePage({
     .select("avatar_url,bio,display_name,twitter_handle")
     .eq("id", user.id)
     .single();
+  const { data: visibilitySettings } = await supabase
+    .from("profiles")
+    .select("allow_external_typing")
+    .eq("id", user.id)
+    .maybeSingle();
 
   const { data: typeSystemRows } = await supabase
     .from("type_systems")
@@ -112,6 +117,7 @@ export default async function MePage({
             </p>
           ) : null}
           <ProfileEditForm
+            allowExternalTyping={visibilitySettings?.allow_external_typing ?? true}
             bio={bio}
             currentTypeValueIds={currentTypeValueIds}
             displayName={displayName}

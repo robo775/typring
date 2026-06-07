@@ -15,6 +15,7 @@ type TypeSystemOption = {
 };
 
 type ProfileEditFormProps = {
+  allowExternalTyping: boolean;
   bio: string;
   currentTypeValueIds: Map<string, string>;
   displayName: string;
@@ -23,6 +24,7 @@ type ProfileEditFormProps = {
 };
 
 export function ProfileEditForm({
+  allowExternalTyping,
   bio,
   currentTypeValueIds,
   displayName,
@@ -34,7 +36,7 @@ export function ProfileEditForm({
       <label className="grid gap-2 text-sm font-semibold text-ink">
         表示名
         <input
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal outline-none transition focus:border-ringTeal focus:ring-2 focus:ring-teal-100"
+          className={fieldClass}
           defaultValue={displayName}
           maxLength={80}
           name="display_name"
@@ -51,6 +53,25 @@ export function ProfileEditForm({
           name="bio"
           placeholder="好きなこと、話したいこと、プロフィールに添えたい一言を書いてください。"
         />
+      </label>
+
+      <label className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        <span className="flex items-start gap-3">
+          <input
+            className="mt-1"
+            defaultChecked={allowExternalTyping}
+            name="allow_external_typing"
+            type="checkbox"
+          />
+          <span>
+            <span className="block font-semibold text-ink">
+              他ユーザーからの類型予想を受け付ける
+            </span>
+            <span className="mt-1 block leading-6">
+              OFFにすると、プロフィール上の予想結果と投票フォームが非表示になります。
+            </span>
+          </span>
+        </span>
       </label>
 
       <div className="grid gap-4">
@@ -71,7 +92,7 @@ export function ProfileEditForm({
             >
               {system.name}
               <select
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal outline-none transition focus:border-ringTeal focus:ring-2 focus:ring-teal-100"
+                className={fieldClass}
                 defaultValue={currentTypeValueIds.get(system.id) ?? ""}
                 name={`type:${system.id}`}
               >
@@ -97,3 +118,6 @@ export function ProfileEditForm({
     </form>
   );
 }
+
+const fieldClass =
+  "rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal outline-none transition focus:border-ringTeal focus:ring-2 focus:ring-teal-100";

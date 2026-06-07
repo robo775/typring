@@ -1,4 +1,4 @@
-import { AtSign } from "lucide-react";
+import { AtSign, ExternalLink } from "lucide-react";
 import { TypeTag } from "@/components/types/type-tag";
 import { cn } from "@/lib/utils/cn";
 
@@ -24,6 +24,9 @@ export function ProfileCard({
   handle,
   types
 }: ProfileCardProps) {
+  const normalizedHandle = handle.replace(/^@/, "");
+  const canLinkToX = /^[A-Za-z0-9_]{1,15}$/.test(normalizedHandle);
+
   return (
     <article
       className={cn(
@@ -47,10 +50,23 @@ export function ProfileCard({
           </div>
           <div className="min-w-0">
             <h2 className="truncate text-xl font-bold">{displayName}</h2>
-            <p className="mt-1 flex items-center gap-1 text-sm text-white/82">
-              <AtSign className="h-3.5 w-3.5" />
-              <span className="truncate">{handle}</span>
-            </p>
+            {canLinkToX ? (
+              <a
+                className="mt-1 flex items-center gap-1 text-sm text-white/82 underline-offset-4 hover:underline"
+                href={`https://x.com/${normalizedHandle}`}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                <AtSign className="h-3.5 w-3.5" />
+                <span className="truncate">{normalizedHandle}</span>
+                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+              </a>
+            ) : (
+              <p className="mt-1 flex items-center gap-1 text-sm text-white/82">
+                <AtSign className="h-3.5 w-3.5" />
+                <span className="truncate">{handle}</span>
+              </p>
+            )}
           </div>
         </div>
       </div>

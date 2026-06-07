@@ -20,7 +20,7 @@ export function CompatibilityPanel({
     <section className="space-y-4 rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-ringViolet">
-          相性診断
+          Compatibility
         </p>
         <h2 className="mt-2 text-xl font-bold tracking-tight text-ink">
           AI相性コメント
