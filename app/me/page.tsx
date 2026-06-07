@@ -115,6 +115,14 @@ export default async function MePage({
               {searchParams.error}
             </p>
           ) : null}
+          {profile?.twitter_handle ? (
+            <Link
+              className="mt-4 inline-flex w-full items-center justify-center rounded-full border border-ringTeal bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:-translate-y-0.5 hover:bg-teal-50 sm:w-auto"
+              href={`/users/${encodeURIComponent(profile.twitter_handle)}`}
+            >
+              自分のプロフィールを見る
+            </Link>
+          ) : null}
           <ProfileEditForm
             allowExternalTyping={visibilitySettings?.allow_external_typing ?? true}
             bio={bio}
