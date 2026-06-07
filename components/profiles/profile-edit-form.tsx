@@ -19,6 +19,7 @@ type ProfileEditFormProps = {
   bio: string;
   currentTypeValueIds: Map<string, string>;
   displayName: string;
+  showQuizHistory: boolean;
   typeSystems: TypeSystemOption[];
   typeValues: TypeValueOption[];
 };
@@ -28,6 +29,7 @@ export function ProfileEditForm({
   bio,
   currentTypeValueIds,
   displayName,
+  showQuizHistory,
   typeSystems,
   typeValues
 }: ProfileEditFormProps) {
@@ -51,28 +53,24 @@ export function ProfileEditForm({
           defaultValue={bio}
           maxLength={500}
           name="bio"
-          placeholder="好きなこと、話したいこと、プロフィールに添えたい一言を書いてください。"
+          placeholder="好きなこと、話したいこと、プロフィールに添えたい一言を書けます。"
         />
       </label>
 
-      <label className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-        <span className="flex items-start gap-3">
-          <input
-            className="mt-1"
-            defaultChecked={allowExternalTyping}
-            name="allow_external_typing"
-            type="checkbox"
-          />
-          <span>
-            <span className="block font-semibold text-ink">
-              他ユーザーからの類型予想を受け付ける
-            </span>
-            <span className="mt-1 block leading-6">
-              OFFにすると、プロフィール上の予想結果と投票フォームが非表示になります。
-            </span>
-          </span>
-        </span>
-      </label>
+      <div className="grid gap-3">
+        <ProfileCheckbox
+          defaultChecked={allowExternalTyping}
+          description="OFFにすると、プロフィール上の他者診断結果と投票フォームを非表示にします。"
+          name="allow_external_typing"
+          title="他ユーザーからの類型予想を受け付ける"
+        />
+        <ProfileCheckbox
+          defaultChecked={showQuizHistory}
+          description="OFFにすると、診断ページやプロフィールで最近遊んだ診断として表示されません。"
+          name="show_quiz_history"
+          title="診断履歴をプロフィールや診断ページに表示する"
+        />
+      </div>
 
       <div className="grid gap-4">
         {typeSystems.length === 0 ? (
@@ -116,6 +114,35 @@ export function ProfileEditForm({
         保存する
       </button>
     </form>
+  );
+}
+
+function ProfileCheckbox({
+  defaultChecked,
+  description,
+  name,
+  title
+}: {
+  defaultChecked: boolean;
+  description: string;
+  name: string;
+  title: string;
+}) {
+  return (
+    <label className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+      <span className="flex items-start gap-3">
+        <input
+          className="mt-1"
+          defaultChecked={defaultChecked}
+          name={name}
+          type="checkbox"
+        />
+        <span>
+          <span className="block font-semibold text-ink">{title}</span>
+          <span className="mt-1 block leading-6">{description}</span>
+        </span>
+      </span>
+    </label>
   );
 }
 

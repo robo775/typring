@@ -46,7 +46,7 @@ export default async function MePage({
     .single();
   const { data: visibilitySettings } = await supabase
     .from("profiles")
-    .select("allow_external_typing")
+    .select("allow_external_typing,show_quiz_history")
     .eq("id", user.id)
     .maybeSingle();
   const { data: typeSystemRows } = await supabase
@@ -135,6 +135,7 @@ export default async function MePage({
             bio={bio}
             currentTypeValueIds={currentTypeValueIds}
             displayName={displayName}
+            showQuizHistory={visibilitySettings?.show_quiz_history ?? true}
             typeSystems={typeSystems}
             typeValues={typeValues}
           />

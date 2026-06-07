@@ -17,6 +17,7 @@ export async function updateMyProfile(formData: FormData) {
   const displayName = getString(formData, "display_name");
   const bio = getString(formData, "bio");
   const allowExternalTyping = formData.get("allow_external_typing") === "on";
+  const showQuizHistory = formData.get("show_quiz_history") === "on";
 
   if (!displayName) {
     redirect("/me?error=display_name_required");
@@ -41,7 +42,8 @@ export async function updateMyProfile(formData: FormData) {
     .update({
       allow_external_typing: allowExternalTyping,
       bio,
-      display_name: displayName
+      display_name: displayName,
+      show_quiz_history: showQuizHistory
     })
     .eq("id", user.id);
 

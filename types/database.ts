@@ -18,6 +18,7 @@ export type Database = {
           display_name: string;
           id: string;
           is_admin: boolean;
+          show_quiz_history: boolean;
           subscription_tier: "free" | "supporter";
           twitter_handle: string | null;
           twitter_id: string | null;
@@ -31,6 +32,7 @@ export type Database = {
           display_name: string;
           id: string;
           is_admin?: boolean;
+          show_quiz_history?: boolean;
           subscription_tier?: "free" | "supporter";
           twitter_handle?: string | null;
           twitter_id?: string | null;
@@ -44,6 +46,7 @@ export type Database = {
           display_name?: string;
           id?: string;
           is_admin?: boolean;
+          show_quiz_history?: boolean;
           subscription_tier?: "free" | "supporter";
           twitter_handle?: string | null;
           twitter_id?: string | null;
@@ -375,6 +378,40 @@ export type Database = {
           type_system_id: string;
           type_value_id: string;
           vote_count: number;
+        }[];
+      };
+      get_public_quiz_history: {
+        Args: {
+          p_limit?: number | null;
+          p_user_id: string;
+        };
+        Returns: {
+          attempt_id: string;
+          created_at: string;
+          quiz_slug: string;
+          quiz_title: string;
+          result_name: string | null;
+        }[];
+      };
+      get_quiz_attempt_count: {
+        Args: {
+          p_quiz_id: string;
+        };
+        Returns: number;
+      };
+      get_recent_quiz_attempts: {
+        Args: {
+          p_limit?: number | null;
+          p_quiz_id: string;
+        };
+        Returns: {
+          attempt_id: string;
+          avatar_url: string | null;
+          created_at: string;
+          display_name: string;
+          result_name: string | null;
+          twitter_handle: string | null;
+          user_id: string;
         }[];
       };
       get_x_mutual_profile_ids: {

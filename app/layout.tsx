@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { BarChart3, BookOpen, Home, Search, UserRound } from "lucide-react";
+import { BarChart3, BookOpen, Home, PenLine, Search, Sparkles, UserRound } from "lucide-react";
 import Link from "next/link";
 import { AdsenseScript } from "@/components/ads/adsense-script";
 import { AuthStatus } from "@/components/auth/auth-status";
@@ -18,6 +18,8 @@ export const metadata: Metadata = {
 const navItems = [
   { href: "/", label: "ホーム", icon: Home },
   { href: "/search", label: "検索", icon: Search },
+  { href: "/quizzes", label: "診断", icon: Sparkles },
+  { href: "/quizzes/new", label: "作る", icon: PenLine },
   { href: "/stats", label: "統計", icon: BarChart3 },
   { href: "/handbook", label: "ハンドブック", icon: BookOpen },
   { href: "/me", label: "マイページ", icon: UserRound }
@@ -56,7 +58,7 @@ export default function RootLayout({
           </header>
           <main className="pb-20 sm:pb-0">{children}</main>
           <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-white/80 bg-white/92 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur sm:hidden">
-            <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
+            <div className="mx-auto grid max-w-lg grid-cols-7 gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
 
