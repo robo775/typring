@@ -182,15 +182,7 @@ function downloadBlob(blob: Blob, handle: string) {
   URL.revokeObjectURL(url);
 }
 
-async function createProfileCardImage({
-  avatarUrl,
-  bio,
-  displayName,
-  handle,
-  showVotedTypes,
-  types,
-  votedTypes
-}: {
+async function createProfileCardImage(props: {
   avatarUrl: string | null;
   bio: string;
   displayName: string;
@@ -199,6 +191,38 @@ async function createProfileCardImage({
   types: ProfileType[];
   votedTypes: ProfileType[];
 }) {
+  const avatarImage = props.avatarUrl ? await loadImage(props.avatarUrl) : null;
+
+  try {
+    return await renderProfileCardImage(props, avatarImage);
+  } catch (error) {
+    if (avatarImage) {
+      return renderProfileCardImage(props, null);
+    }
+
+    throw error;
+  }
+}
+
+async function renderProfileCardImage(
+  {
+    bio,
+    displayName,
+    handle,
+    showVotedTypes,
+    types,
+    votedTypes
+  }: {
+    avatarUrl: string | null;
+    bio: string;
+    displayName: string;
+    handle: string;
+    showVotedTypes: boolean;
+    types: ProfileType[];
+    votedTypes: ProfileType[];
+  },
+  avatarImage: HTMLImageElement | null
+) {
   const canvas = document.createElement("canvas");
   const width = 1080;
   const height = showVotedTypes ? 1320 : 1120;
@@ -216,7 +240,7 @@ async function createProfileCardImage({
   ctx.scale(scale, scale);
   drawBackground(ctx, width, height);
   drawCard(ctx, {
-    avatarUrl,
+    avatarImage,
     bio,
     displayName,
     handle,
@@ -228,14 +252,37 @@ async function createProfileCardImage({
   });
 
   return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        reject(new Error("Failed to create image."));
-        return;
-      }
+    try {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error("Failed to create image."));
+          return;
+        }
 
-      resolve(blob);
-    }, "image/png");
+        resolve(blob);
+      }, "image/png");
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function loadImage(src: string) {
+  return new Promise<HTMLImageElement | null>((resolve) => {
+    const image = new Image();
+    const timeout = window.setTimeout(() => resolve(null), 5000);
+
+    image.crossOrigin = "anonymous";
+    image.referrerPolicy = "no-referrer";
+    image.onload = () => {
+      window.clearTimeout(timeout);
+      resolve(image);
+    };
+    image.onerror = () => {
+      window.clearTimeout(timeout);
+      resolve(null);
+    };
+    image.src = src;
   });
 }
 
@@ -255,7 +302,7 @@ function drawBackground(
 function drawCard(
   ctx: CanvasRenderingContext2D,
   {
-    avatarUrl,
+    avatarImage,
     bio,
     displayName,
     handle,
@@ -265,7 +312,7 @@ function drawCard(
     votedTypes,
     width
   }: {
-    avatarUrl: string | null;
+    avatarImage: HTMLImageElement | null;
     bio: string;
     displayName: string;
     handle: string;
@@ -297,7 +344,7 @@ function drawCard(
 
   const avatarX = cardX + 56;
   const avatarY = cardY + 70;
-  drawAvatar(ctx, avatarUrl, displayName, avatarX, avatarY, 136);
+  drawAvatar(ctx, avatarImage, displayName, avatarX, avatarY, 136);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "700 48px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
@@ -343,7 +390,7 @@ function drawCard(
 
 function drawAvatar(
   ctx: CanvasRenderingContext2D,
-  avatarUrl: string | null,
+  avatarImage: HTMLImageElement | null,
   displayName: string,
   x: number,
   y: number,
@@ -359,17 +406,33 @@ function drawAvatar(
   ctx.stroke();
   ctx.clip();
 
-  // Xなど外部画像はCORSでcanvas保存に失敗しやすいため、画像化時は頭文字で安定表示する。
-  void avatarUrl;
-  ctx.fillStyle = "rgba(255,255,255,0.18)";
-  ctx.fillRect(x, y, size, size);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "800 58px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(displayName.slice(0, 1).toUpperCase(), x + size / 2, y + size / 2);
-  ctx.textAlign = "start";
-  ctx.textBaseline = "alphabetic";
+  if (avatarImage) {
+    const sourceSize = Math.min(avatarImage.naturalWidth, avatarImage.naturalHeight);
+    const sourceX = (avatarImage.naturalWidth - sourceSize) / 2;
+    const sourceY = (avatarImage.naturalHeight - sourceSize) / 2;
+    ctx.drawImage(
+      avatarImage,
+      sourceX,
+      sourceY,
+      sourceSize,
+      sourceSize,
+      x,
+      y,
+      size,
+      size
+    );
+  } else {
+    ctx.fillStyle = "rgba(255,255,255,0.18)";
+    ctx.fillRect(x, y, size, size);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "800 58px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(displayName.slice(0, 1).toUpperCase(), x + size / 2, y + size / 2);
+    ctx.textAlign = "start";
+    ctx.textBaseline = "alphabetic";
+  }
+
   ctx.restore();
 }
 

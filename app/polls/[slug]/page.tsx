@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BarChart3 } from "lucide-react";
+import { PollShareActions } from "@/components/polls/poll-share-actions";
 import { submitPollResponse } from "@/lib/polls/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -61,6 +62,8 @@ export default async function PollDetailPage({
         .maybeSingle()
     : { data: null };
   const creator = Array.isArray(poll.creator) ? poll.creator[0] : poll.creator;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const pollUrl = `${appUrl.replace(/\/$/, "")}/polls/${poll.slug}`;
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[1fr_360px]">
@@ -140,6 +143,11 @@ export default async function PollDetailPage({
       </section>
 
       <aside className="space-y-4">
+        <PollShareActions
+          pollTitle={poll.title}
+          pollUrl={pollUrl}
+          question={poll.question}
+        />
         <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
           <h2 className="text-lg font-bold text-ink">現在の回答</h2>
           <p className="mt-1 text-sm text-slate-500">{total}人が回答</p>
