@@ -12,6 +12,7 @@ import { TypeVoteSummary } from "@/components/votes/type-vote-summary";
 import { getAdVisibility } from "@/lib/ads/viewer";
 import { isMutualWithProfile } from "@/lib/mutuals/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getTopVotedTypesForUser } from "@/lib/votes/queries";
 
 type UserTypeRow = {
   type_system_id: string;
@@ -76,20 +77,17 @@ export default async function UserProfilePage({
     .select("allow_external_typing")
     .eq("id", profile.id)
     .maybeSingle();
-
   const { data: userTypeRows } = await supabase
     .from("user_types")
     .select("type_system_id,type_value_id")
     .eq("user_id", profile.id);
   const userTypes = (userTypeRows ?? []) as UserTypeRow[];
-
   const { data: activeTypeSystemRows } = await supabase
     .from("type_systems")
     .select("id,code,name")
     .eq("is_active", true)
     .order("position", { ascending: true })
     .order("name", { ascending: true });
-
   const { data: activeTypeValueRows } = await supabase
     .from("type_values")
     .select("id,type_system_id,code,name")
@@ -99,26 +97,12 @@ export default async function UserProfilePage({
 
   const activeTypeSystems = activeTypeSystemRows ?? [];
   const activeTypeValues = activeTypeValueRows ?? [];
-  const typeSystemIds = userTypes.map((userType) => userType.type_system_id);
-  const typeValueIds = userTypes.map((userType) => userType.type_value_id);
-
-  const typeSystemResult =
-    typeSystemIds.length > 0
-      ? await supabase.from("type_systems").select("id,name").in("id", typeSystemIds)
-      : { data: [] };
-  const typeValueResult =
-    typeValueIds.length > 0
-      ? await supabase.from("type_values").select("id,code,name").in("id", typeValueIds)
-      : { data: [] };
-
-  const typeSystems = typeSystemResult.data ?? [];
-  const typeValues = typeValueResult.data ?? [];
   const profileTypes = userTypes
     .map((userType) => {
-      const system = typeSystems.find(
+      const system = activeTypeSystems.find(
         (typeSystem) => typeSystem.id === userType.type_system_id
       );
-      const value = typeValues.find(
+      const value = activeTypeValues.find(
         (typeValue) => typeValue.id === userType.type_value_id
       );
 
@@ -132,6 +116,7 @@ export default async function UserProfilePage({
       };
     })
     .filter((type): type is { system: string; value: string } => type !== null);
+  const votedTypes = await getTopVotedTypesForUser(supabase, profile.id);
 
   const { data: voteSummaryRows } = await supabase.rpc("get_type_vote_summary", {
     p_target_user_id: profile.id
@@ -233,6 +218,7 @@ export default async function UserProfilePage({
         displayName={profile.display_name}
         handle={profile.twitter_handle ?? handle}
         types={profileTypes}
+        votedTypes={votedTypes}
       />
       <div className="lg:hidden">
         <AdSlot
@@ -250,7 +236,7 @@ export default async function UserProfilePage({
           types={profileTypes}
         />
         {searchParams?.voted ? (
-          <StatusMessage>投票を保存しました。</StatusMessage>
+          <StatusMessage>他者診断の投票を保存しました。</StatusMessage>
         ) : null}
         {searchParams?.introduced ? (
           <StatusMessage>紹介文を保存しました。</StatusMessage>
@@ -267,8 +253,8 @@ export default async function UserProfilePage({
           <>
             <SectionHeader
               eyebrow="Votes"
-              title="類型予想"
-              description="この人がどの類型に見えるか、匿名で投票できます。集計結果は割合で表示されます。"
+              title="他者診断"
+              description="この人がどの類型に見えるかを匿名で投票できます。集計結果は割合で表示されます。"
             />
             <TypeVoteForm
               currentVoteValueIds={currentVoteValueIds}

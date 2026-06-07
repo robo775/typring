@@ -18,8 +18,8 @@ type TypeValue = {
 };
 
 export const metadata: Metadata = {
-  title: "類型統計",
-  description: "Typringに登録された類型の組み合わせをクロス集計で見られます。"
+  title: "自認タイプ統計",
+  description: "Typringに登録された自認タイプの組み合わせをクロス集計で見られます。"
 };
 
 export default async function StatsPage({
@@ -79,9 +79,9 @@ export default async function StatsPage({
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <SectionHeader
-        eyebrow="統計"
-        title="類型クロス集計"
-        description="2つの類型を選ぶと、組み合わせごとの登録人数を一覧できます。各行で一番多い組み合わせは赤く表示されます。"
+        eyebrow="Stats"
+        title="自認タイプ統計"
+        description="2つの類型システムを選ぶと、登録ユーザーの自認タイプの組み合わせを一覧できます。各行で一番多い組み合わせは赤色で表示します。"
       />
 
       <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
@@ -125,20 +125,20 @@ export default async function StatsPage({
 
       {!rowSystem || !colSystem ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-sm text-slate-500">
-          集計できる類型がまだありません。
+          集計できる類型システムがまだありません。
         </div>
       ) : rowSystem.id === colSystem.id ? (
         <div className="rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-5 text-sm text-amber-800">
-          縦軸と横軸には別々の類型を選んでください。
+          縦軸と横軸には別々の類型システムを選んでください。
         </div>
       ) : (
         <section className="overflow-hidden rounded-2xl border border-white bg-white/88 shadow-sm">
           <div className="border-b border-slate-100 p-5">
             <h2 className="text-lg font-bold text-ink">
-              {rowSystem.name} × {colSystem.name}
+              {rowSystem.name} x {colSystem.name}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              縦軸ごとに最も多い横軸の組み合わせを赤色で強調しています。
+              縦軸ごとに一番多い横軸の組み合わせを赤色で強調しています。
             </p>
           </div>
           <div className="overflow-x-auto">

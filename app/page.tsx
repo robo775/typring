@@ -6,6 +6,7 @@ import { ProfileCard } from "@/components/profiles/profile-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { getAdVisibility } from "@/lib/ads/viewer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getTopVotedTypesForUser } from "@/lib/votes/queries";
 
 type CardType = {
   system: string;
@@ -31,6 +32,7 @@ export default async function HomePage({
       }
     | null = null;
   let types: CardType[] = [];
+  let votedTypes: CardType[] = [];
 
   if (user) {
     const { data: profileRow } = await supabase
@@ -76,6 +78,7 @@ export default async function HomePage({
           }
         ];
       }) ?? [];
+    votedTypes = await getTopVotedTypesForUser(supabase, user.id);
   }
 
   const cardProfile = profile ?? {
@@ -103,7 +106,7 @@ export default async function HomePage({
               類型でつながる、プロフィールカードSNS。
             </h1>
             <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-              自分の類型を登録して、見やすいプロフィールカードを作成。気になる類型や近い組み合わせのユーザーも探せます。
+              自認タイプを登録して、見やすいプロフィールカードを作成。気になる類型や近い組み合わせのユーザーも探せます。
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -128,6 +131,7 @@ export default async function HomePage({
           displayName={cardProfile.display_name}
           handle={cardProfile.twitter_handle ?? "unknown"}
           types={types}
+          votedTypes={votedTypes}
         />
       </section>
 
@@ -135,7 +139,7 @@ export default async function HomePage({
         <FeatureCard
           icon={<UserRound className="h-5 w-5" />}
           title="プロフィールカード"
-          body="自分の類型と自己紹介を、スクショしやすいカードでまとめられます。"
+          body="自認タイプと自己紹介を、スクショしやすいカードでまとめられます。"
         />
         <FeatureCard
           icon={<Search className="h-5 w-5" />}
@@ -144,20 +148,23 @@ export default async function HomePage({
         />
         <FeatureCard
           icon={<Sparkles className="h-5 w-5" />}
-          title="ハンドブック"
-          body="類型ごとの説明や、その類型を登録しているユーザーを見られます。"
+          title="他者診断"
+          body="他のユーザーから見た類型予想を集めて、プロフィールカードに表示できます。"
         />
       </section>
 
       <section className="space-y-4">
         <SectionHeader
-          eyebrow="人気の類型"
-          title="人気の類型"
-          description="登録が増えると、よく選ばれている類型がここに表示されます。"
+          eyebrow="Rankings"
+          title="他者診断ランキング"
+          description="みんなからどう見られているかを、投票数ベースで一覧できます。"
         />
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-4 text-sm text-slate-500">
-          まだ表示できる人気データがありません。
-        </div>
+        <Link
+          className="inline-flex items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-0.5"
+          href="/vote-rankings"
+        >
+          ランキングを見る
+        </Link>
       </section>
 
       <AdSlot

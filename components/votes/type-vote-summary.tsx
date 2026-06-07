@@ -14,7 +14,7 @@ export function TypeVoteSummary({ items }: TypeVoteSummaryProps) {
   if (items.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-sm text-slate-500">
-        まだ予想投票はありません。
+        まだ他者診断の投票はありません。
       </div>
     );
   }

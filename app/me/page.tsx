@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { DeleteAccountSection } from "@/components/account/delete-account-section";
-import { ProfileEditForm } from "@/components/profiles/profile-edit-form";
 import { ProfileCard } from "@/components/profiles/profile-card";
+import { ProfileEditForm } from "@/components/profiles/profile-edit-form";
 import { SectionHeader } from "@/components/ui/section-header";
 import { ensureProfileForUser } from "@/lib/auth/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getTopVotedTypesForUser } from "@/lib/votes/queries";
 
 export default async function MePage({
   searchParams
@@ -48,21 +49,18 @@ export default async function MePage({
     .select("allow_external_typing")
     .eq("id", user.id)
     .maybeSingle();
-
   const { data: typeSystemRows } = await supabase
     .from("type_systems")
     .select("id,code,name")
     .eq("is_active", true)
     .order("position", { ascending: true })
     .order("name", { ascending: true });
-
   const { data: typeValueRows } = await supabase
     .from("type_values")
     .select("id,type_system_id,code,name")
     .eq("is_active", true)
     .order("position", { ascending: true })
     .order("name", { ascending: true });
-
   const { data: userTypeRows } = await supabase
     .from("user_types")
     .select("type_system_id,type_value_id")
@@ -96,6 +94,7 @@ export default async function MePage({
       };
     })
     .filter((type): type is { system: string; value: string } => type !== null);
+  const votedTypes = await getTopVotedTypesForUser(supabase, user.id);
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[1fr_380px]">
@@ -104,7 +103,7 @@ export default async function MePage({
           <SectionHeader
             eyebrow="マイページ"
             title="プロフィール編集"
-            description="表示名、自己紹介、あなたの類型を編集できます。選んだ内容はプロフィールカードに表示されます。"
+            description="表示名、自己紹介、あなたの自認タイプを編集できます。保存した内容はプロフィールカードに反映されます。"
           />
           {searchParams?.saved ? (
             <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
@@ -133,6 +132,7 @@ export default async function MePage({
         displayName={displayName}
         handle={handle}
         types={previewTypes}
+        votedTypes={votedTypes}
       />
     </div>
   );

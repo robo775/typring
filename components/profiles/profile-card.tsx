@@ -14,6 +14,7 @@ type ProfileCardProps = {
   displayName: string;
   handle: string;
   types: ProfileType[];
+  votedTypes?: ProfileType[];
 };
 
 export function ProfileCard({
@@ -22,7 +23,8 @@ export function ProfileCard({
   className,
   displayName,
   handle,
-  types
+  types,
+  votedTypes = []
 }: ProfileCardProps) {
   const normalizedHandle = handle.replace(/^@/, "");
   const canLinkToX = /^[A-Za-z0-9_]{1,15}$/.test(normalizedHandle);
@@ -72,22 +74,52 @@ export function ProfileCard({
       </div>
       <div className="space-y-4 p-5">
         <p className="text-sm leading-6 text-slate-600">{bio}</p>
-        {types.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {types.map((type) => (
-              <TypeTag
-                key={`${type.system}-${type.value}`}
-                system={type.system}
-                value={type.value}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
-            自己申告の類型はまだ登録されていません。
-          </p>
-        )}
+        <TypeSection
+          emptyText="自認タイプはまだ登録されていません。"
+          label="自認"
+          types={types}
+        />
+        <TypeSection
+          emptyText="他者診断はまだ集まっていません。"
+          label="他者診断 1位"
+          muted
+          types={votedTypes}
+        />
       </div>
     </article>
+  );
+}
+
+function TypeSection({
+  emptyText,
+  label,
+  muted = false,
+  types
+}: {
+  emptyText: string;
+  label: string;
+  muted?: boolean;
+  types: ProfileType[];
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-bold text-slate-400">{label}</p>
+      {types.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {types.map((type) => (
+            <TypeTag
+              key={`${label}-${type.system}-${type.value}`}
+              system={type.system}
+              value={type.value}
+              variant={muted ? "voted" : "self"}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+          {emptyText}
+        </p>
+      )}
+    </div>
   );
 }

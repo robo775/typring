@@ -5,6 +5,7 @@ import { SearchForm } from "@/components/search/search-form";
 import { SectionHeader } from "@/components/ui/section-header";
 import { getAdVisibility } from "@/lib/ads/viewer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getTopVotedTypesForUsers } from "@/lib/votes/queries";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -26,14 +27,12 @@ export default async function SearchPage({
     .replace(/^@/, "")
     .trim()
     .slice(0, 80);
-
   const { data: typeSystemRows } = await supabase
     .from("type_systems")
     .select("id,code,name")
     .eq("is_active", true)
     .order("position", { ascending: true })
     .order("name", { ascending: true });
-
   const { data: typeValueRows } = await supabase
     .from("type_values")
     .select("id,type_system_id,code,name")
@@ -52,18 +51,17 @@ export default async function SearchPage({
     selectedTypeValues,
     supabase
   });
-  const profileTypesByUserId = await getProfileTypesByUserId(
-    supabase,
-    profileResults.map((profile) => profile.id)
-  );
+  const userIds = profileResults.map((profile) => profile.id);
+  const profileTypesByUserId = await getProfileTypesByUserId(supabase, userIds);
+  const votedTypesByUserId = await getTopVotedTypesForUsers(supabase, userIds);
   const showAds = await getAdVisibility(supabase);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
       <SectionHeader
-        eyebrow="検索"
+        eyebrow="Search"
         title="類型でユーザー検索"
-        description="Xハンドル名や類型の組み合わせからユーザーを探せます。複数条件を選ぶと、すべてに当てはまるユーザーを表示します。"
+        description="Xハンドル名や、自認タイプの組み合わせからユーザーを探せます。複数条件を選ぶと、すべてに当てはまるユーザーだけを表示します。"
       />
       <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
         <SearchForm
@@ -83,6 +81,7 @@ export default async function SearchPage({
               displayName={profile.display_name}
               handle={profile.twitter_handle ?? "unknown"}
               types={profileTypesByUserId.get(profile.id) ?? []}
+              votedTypes={votedTypesByUserId.get(profile.id) ?? []}
             />
           );
 
@@ -189,7 +188,6 @@ async function getUserIdsMatchingAllTypes(
     .from("user_types")
     .select("user_id,type_system_id,type_value_id")
     .in("type_value_id", selectedTypeValueIds);
-
   const rows = data ?? [];
   const requiredPairs = new Set(
     selectedTypeValues.map(
@@ -227,7 +225,6 @@ async function getProfileTypesByUserId(
     .from("user_types")
     .select("user_id,type_system_id,type_value_id")
     .in("user_id", userIds);
-
   const rows = userTypes ?? [];
   const typeSystemIds = Array.from(new Set(rows.map((row) => row.type_system_id)));
   const typeValueIds = Array.from(new Set(rows.map((row) => row.type_value_id)));

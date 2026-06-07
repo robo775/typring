@@ -359,6 +359,24 @@ export type Database = {
           vote_count: number;
         }[];
       };
+      get_type_vote_rankings: {
+        Args: {
+          p_limit?: number | null;
+          p_type_system_id?: string | null;
+          p_type_value_id?: string | null;
+        };
+        Returns: {
+          avatar_url: string | null;
+          display_name: string;
+          percentage: number;
+          target_user_id: string;
+          total_count: number;
+          twitter_handle: string | null;
+          type_system_id: string;
+          type_value_id: string;
+          vote_count: number;
+        }[];
+      };
       get_x_mutual_profile_ids: {
         Args: {
           p_user_id: string;
