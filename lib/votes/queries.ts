@@ -4,6 +4,7 @@ export type DisplayType = {
   system: string;
   systemPosition: number;
   value: string;
+  valuePosition: number;
 };
 
 type VoteSummaryRow = {
@@ -99,7 +100,8 @@ export async function getTopVotedTypesForUsers(
         return {
           system: system.name,
           systemPosition: system.position,
-          value: value.name || value.code
+          value: value.name || value.code,
+          valuePosition: value.position
         };
       })
       .filter((type): type is DisplayType => type !== null)
@@ -108,6 +110,10 @@ export async function getTopVotedTypesForUsers(
 
         if (positionDiff !== 0) {
           return positionDiff;
+        }
+
+        if (a.valuePosition !== b.valuePosition) {
+          return a.valuePosition - b.valuePosition;
         }
 
         return a.system.localeCompare(b.system);

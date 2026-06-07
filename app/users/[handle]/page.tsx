@@ -52,6 +52,11 @@ type QuizHistoryRow = {
   result_name: string | null;
 };
 
+type ProfileType = {
+  system: string;
+  value: string;
+};
+
 export default async function UserProfilePage({
   params,
   searchParams
@@ -72,7 +77,7 @@ export default async function UserProfilePage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id,avatar_url,bio,display_name,twitter_handle")
+    .select("id,allow_external_typing,avatar_url,bio,display_name,twitter_handle")
     .eq("twitter_handle", handle)
     .maybeSingle();
 
@@ -80,11 +85,6 @@ export default async function UserProfilePage({
     notFound();
   }
 
-  const { data: visibilitySettings } = await supabase
-    .from("profiles")
-    .select("allow_external_typing")
-    .eq("id", profile.id)
-    .maybeSingle();
   const { data: userTypeRows } = await supabase
     .from("user_types")
     .select("type_system_id,type_value_id")
@@ -92,13 +92,13 @@ export default async function UserProfilePage({
   const userTypes = (userTypeRows ?? []) as UserTypeRow[];
   const { data: activeTypeSystemRows } = await supabase
     .from("type_systems")
-    .select("id,code,name")
+    .select("id,code,name,position")
     .eq("is_active", true)
     .order("position", { ascending: true })
     .order("name", { ascending: true });
   const { data: activeTypeValueRows } = await supabase
     .from("type_values")
-    .select("id,type_system_id,code,name")
+    .select("id,type_system_id,code,name,position")
     .eq("is_active", true)
     .order("position", { ascending: true })
     .order("name", { ascending: true });
@@ -128,7 +128,7 @@ export default async function UserProfilePage({
         value: value.name || value.code
       };
     })
-    .filter((type): type is { system: string; value: string } => type !== null);
+    .filter((type): type is ProfileType => type !== null);
   const votedTypes = await getTopVotedTypesForUser(supabase, profile.id);
 
   const { data: voteSummaryRows } = await supabase.rpc("get_type_vote_summary", {
@@ -164,20 +164,37 @@ export default async function UserProfilePage({
       return {
         percentage: Math.round((vote.vote_count / vote.total_count) * 100),
         system: system.name,
+        systemPosition: system.position ?? 0,
         totalCount: vote.total_count,
         value: value.name || value.code,
+        valuePosition: value.position ?? 0,
         voteCount: vote.vote_count
       };
     })
     .filter(
-      (item): item is {
+      (
+        item
+      ): item is {
         percentage: number;
         system: string;
+        systemPosition: number;
         totalCount: number;
         value: string;
+        valuePosition: number;
         voteCount: number;
       } => item !== null
-    );
+    )
+    .sort((a, b) => {
+      if (a.systemPosition !== b.systemPosition) {
+        return a.systemPosition - b.systemPosition;
+      }
+
+      if (a.voteCount !== b.voteCount) {
+        return b.voteCount - a.voteCount;
+      }
+
+      return a.valuePosition - b.valuePosition;
+    });
 
   const { data: introductionRows } = await supabase
     .from("profile_introductions")
@@ -196,6 +213,7 @@ export default async function UserProfilePage({
       updated_at: introduction.updated_at
     })
   );
+
   const { data: quizRows } = await supabase
     .from("quizzes")
     .select("id,slug,title,short_description,status")
@@ -222,7 +240,7 @@ export default async function UserProfilePage({
   const quizHistories = (quizHistoryRows ?? []) as QuizHistoryRow[];
 
   const showAds = await getAdVisibility(supabase);
-  const showExternalTyping = visibilitySettings?.allow_external_typing ?? true;
+  const showExternalTyping = profile.allow_external_typing ?? true;
   const visibleVotedTypes = showExternalTyping ? votedTypes : [];
   const showAiCompatibility =
     process.env.NEXT_PUBLIC_ENABLE_AI_COMPATIBILITY === "true";
@@ -262,7 +280,7 @@ export default async function UserProfilePage({
       <div className="lg:hidden">
         <AdSlot
           className="lg:hidden"
-          label="プロフィール広告枠"
+          label="プロフィール 広告枠"
           show={showAds}
           slot={process.env.NEXT_PUBLIC_ADSENSE_PROFILE_SLOT}
         />
@@ -270,8 +288,12 @@ export default async function UserProfilePage({
       <section className="space-y-4">
         <MutualBadge isMutual={Boolean(isMutual)} />
         <ProfileShareActions
+          avatarUrl={profile.avatar_url}
+          bio={profile.bio ?? "このユーザーはまだ自己紹介を書いていません。"}
           displayName={profile.display_name}
+          handle={profile.twitter_handle ?? handle}
           profileUrl={profileUrl}
+          showVotedTypes={showExternalTyping}
           types={profileTypes}
           votedTypes={visibleVotedTypes}
         />
@@ -294,7 +316,7 @@ export default async function UserProfilePage({
             <SectionHeader
               eyebrow="Votes"
               title="他者診断"
-              description="この人がどの類型に見えるかを匿名で投票できます。集計結果は割合で表示されます。"
+              description="この人がどの類型に見えるかを投票できます。集計結果は匿名で表示されます。"
             />
             <TypeVoteForm
               currentVoteValueIds={currentVoteValueIds}
@@ -371,7 +393,7 @@ export default async function UserProfilePage({
         ) : null}
         <AdSlot
           className="hidden lg:block"
-          label="プロフィール広告枠"
+          label="プロフィール 広告枠"
           show={showAds}
           slot={process.env.NEXT_PUBLIC_ADSENSE_PROFILE_SLOT}
         />
