@@ -4,6 +4,7 @@ import { ProfileCard } from "@/components/profiles/profile-card";
 import { SearchForm } from "@/components/search/search-form";
 import { SectionHeader } from "@/components/ui/section-header";
 import { getAdVisibility } from "@/lib/ads/viewer";
+import { getUserLevelSummaries } from "@/lib/levels/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getTopVotedTypesForUsers } from "@/lib/votes/queries";
 
@@ -66,6 +67,7 @@ export default async function SearchPage({
   const userIds = profileResults.map((profile) => profile.id);
   const profileTypesByUserId = await getProfileTypesByUserId(supabase, userIds);
   const votedTypesByUserId = await getTopVotedTypesForUsers(supabase, userIds);
+  const levelSummariesByUserId = await getUserLevelSummaries(supabase, userIds);
   const showAds = await getAdVisibility(supabase);
 
   return (
@@ -92,6 +94,7 @@ export default async function SearchPage({
               bio={profile.bio ?? "このユーザーはまだ自己紹介を書いていません。"}
               displayName={profile.display_name}
               handle={profile.twitter_handle ?? "unknown"}
+              levelSummary={levelSummariesByUserId.get(profile.id)}
               showVotedTypes={profile.allow_external_typing ?? true}
               types={profileTypesByUserId.get(profile.id) ?? []}
               votedTypes={

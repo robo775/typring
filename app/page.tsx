@@ -4,6 +4,7 @@ import { ArrowRight, ClipboardList, Search, Sparkles, UserRound } from "lucide-r
 import { AdSlot } from "@/components/ads/ad-slot";
 import { ProfileCard } from "@/components/profiles/profile-card";
 import { getAdVisibility } from "@/lib/ads/viewer";
+import { getUserLevelSummary, type UserLevelSummary } from "@/lib/levels/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getTopVotedTypesForUser } from "@/lib/votes/queries";
 
@@ -35,6 +36,7 @@ export default async function HomePage({
     | null = null;
   let types: CardType[] = [];
   let votedTypes: { system: string; value: string }[] = [];
+  let levelSummary: UserLevelSummary | null = null;
 
   if (user) {
     const { data: profileRow } = await supabase
@@ -95,6 +97,7 @@ export default async function HomePage({
           return a.valuePosition - b.valuePosition;
         }) ?? [];
     votedTypes = await getTopVotedTypesForUser(supabase, user.id);
+    levelSummary = await getUserLevelSummary(supabase, user.id);
   }
 
   const cardProfile = profile ?? {
@@ -147,6 +150,7 @@ export default async function HomePage({
           bio={cardProfile.bio || "自己紹介はまだ設定されていません。"}
           displayName={cardProfile.display_name}
           handle={cardProfile.twitter_handle ?? "unknown"}
+          levelSummary={levelSummary}
           showVotedTypes={cardProfile.allow_external_typing ?? true}
           types={types}
           votedTypes={cardProfile.allow_external_typing === false ? [] : votedTypes}

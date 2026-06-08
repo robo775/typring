@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { DeleteAccountSection } from "@/components/account/delete-account-section";
+import { UserLevelPanel } from "@/components/levels/user-level-panel";
 import { AvatarRefreshForm } from "@/components/profiles/avatar-refresh-form";
 import { ProfileCard } from "@/components/profiles/profile-card";
 import { ProfileEditForm } from "@/components/profiles/profile-edit-form";
 import { SectionHeader } from "@/components/ui/section-header";
 import { ensureProfileForUser } from "@/lib/auth/profile";
+import { getUserLevelSummary } from "@/lib/levels/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getTopVotedTypesForUser } from "@/lib/votes/queries";
 
@@ -101,6 +103,7 @@ export default async function MePage({
     })
     .filter((type): type is { system: string; value: string } => type !== null);
   const votedTypes = await getTopVotedTypesForUser(supabase, user.id);
+  const levelSummary = await getUserLevelSummary(supabase, user.id);
   const showExternalTyping = visibilitySettings?.allow_external_typing ?? true;
   const visibleVotedTypes = showExternalTyping ? votedTypes : [];
 
@@ -137,6 +140,7 @@ export default async function MePage({
             </Link>
           ) : null}
           <AvatarRefreshForm />
+          <UserLevelPanel summary={levelSummary} />
           <ProfileEditForm
             allowExternalTyping={visibilitySettings?.allow_external_typing ?? true}
             bio={bio}
@@ -153,6 +157,7 @@ export default async function MePage({
         bio={bio || "自己紹介はまだ設定されていません。"}
         displayName={displayName}
         handle={handle}
+        levelSummary={levelSummary}
         showVotedTypes={showExternalTyping}
         types={previewTypes}
         votedTypes={visibleVotedTypes}

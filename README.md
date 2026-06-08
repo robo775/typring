@@ -108,6 +108,24 @@ The initial schema creates:
 
 The seed inserts MBTI, Enneagram, Socionics, and representative Psychosophy values. Psychosophy intentionally starts with a representative subset so the remaining values can be added later through admin tooling.
 
+### User Level SQL
+
+User levels are calculated from existing activity data instead of being stored as mutable counters. Apply the latest migration before relying on level values in production:
+
+- `supabase/migrations/20260609090000_user_level_summaries.sql`
+
+Current scoring:
+
+- First self-declared type per type system: `+5`
+- Prediction vote given: `+3`
+- Prediction vote received: `+3`
+- Poll answer: `+3`
+- Answer received on the user's poll: `+1`
+- Introduction written: `+10`
+- Introduction received: `+10`
+
+The current level formula is `Lv.1 + floor(total_points / 50)`.
+
 ## Local Setup
 
 Install dependencies:

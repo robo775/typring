@@ -356,10 +356,47 @@ export type Database = {
           p_target_user_id: string;
         };
         Returns: {
+          first_voted_at: string | null;
           total_count: number;
           type_system_id: string;
           type_value_id: string;
           vote_count: number;
+        }[];
+      };
+      get_user_level_summaries: {
+        Args: {
+          p_user_ids: string[];
+        };
+        Returns: {
+          introductions_received_points: number;
+          introductions_written_points: number;
+          level: number;
+          next_level_points: number;
+          poll_answer_points: number;
+          poll_received_points: number;
+          self_type_points: number;
+          total_points: number;
+          user_id: string;
+          votes_given_points: number;
+          votes_received_points: number;
+        }[];
+      };
+      get_user_level_summary: {
+        Args: {
+          p_user_id: string;
+        };
+        Returns: {
+          introductions_received_points: number;
+          introductions_written_points: number;
+          level: number;
+          next_level_points: number;
+          poll_answer_points: number;
+          poll_received_points: number;
+          self_type_points: number;
+          total_points: number;
+          user_id: string;
+          votes_given_points: number;
+          votes_received_points: number;
         }[];
       };
       get_type_vote_rankings: {

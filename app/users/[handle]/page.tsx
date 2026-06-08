@@ -10,6 +10,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { TypeVoteForm } from "@/components/votes/type-vote-form";
 import { TypeVoteSummary } from "@/components/votes/type-vote-summary";
 import { getAdVisibility } from "@/lib/ads/viewer";
+import { getUserLevelSummary } from "@/lib/levels/queries";
 import { isMutualWithProfile } from "@/lib/mutuals/queries";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getTopVotedTypesForUser } from "@/lib/votes/queries";
@@ -224,6 +225,7 @@ export default async function UserProfilePage({
     .limit(6);
 
   const showAds = await getAdVisibility(supabase);
+  const levelSummary = await getUserLevelSummary(supabase, profile.id);
   const showExternalTyping = profile.allow_external_typing ?? true;
   const visibleVotedTypes = showExternalTyping ? votedTypes : [];
   const showAiCompatibility =
@@ -257,6 +259,7 @@ export default async function UserProfilePage({
         bio={profile.bio ?? "このユーザーはまだ自己紹介を書いていません。"}
         displayName={profile.display_name}
         handle={profile.twitter_handle ?? handle}
+        levelSummary={levelSummary}
         showVotedTypes={showExternalTyping}
         types={profileTypes}
         votedTypes={visibleVotedTypes}

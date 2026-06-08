@@ -1,5 +1,6 @@
 import { AtSign, ExternalLink } from "lucide-react";
 import { TypeTag } from "@/components/types/type-tag";
+import type { UserLevelSummary } from "@/lib/levels/queries";
 import { cn } from "@/lib/utils/cn";
 
 type ProfileType = {
@@ -13,6 +14,7 @@ type ProfileCardProps = {
   className?: string;
   displayName: string;
   handle: string;
+  levelSummary?: UserLevelSummary | null;
   showVotedTypes?: boolean;
   types: ProfileType[];
   votedTypes?: ProfileType[];
@@ -24,6 +26,7 @@ export function ProfileCard({
   className,
   displayName,
   handle,
+  levelSummary,
   showVotedTypes = false,
   types,
   votedTypes = []
@@ -53,7 +56,10 @@ export function ProfileCard({
             )}
           </div>
           <div className="min-w-0">
-            <h2 className="truncate text-xl font-bold">{displayName}</h2>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h2 className="truncate text-xl font-bold">{displayName}</h2>
+              {levelSummary ? <LevelBadge summary={levelSummary} /> : null}
+            </div>
             {canLinkToX ? (
               <a
                 className="mt-1 flex items-center gap-1 text-sm text-white/82 underline-offset-4 hover:underline"
@@ -91,6 +97,20 @@ export function ProfileCard({
         ) : null}
       </div>
     </article>
+  );
+}
+
+function LevelBadge({ summary }: { summary: UserLevelSummary }) {
+  return (
+    <span
+      className="inline-flex shrink-0 items-center rounded-full border border-white/30 bg-white/20 px-2 py-0.5 text-xs font-bold text-white"
+      title={`${summary.totalPoints}pt / 次のLvまで${Math.max(
+        0,
+        summary.nextLevelPoints - summary.totalPoints
+      )}pt`}
+    >
+      Lv.{summary.level}
+    </span>
   );
 }
 
