@@ -9,7 +9,9 @@ import { getTopVotedTypesForUser } from "@/lib/votes/queries";
 
 type CardType = {
   system: string;
+  systemPosition: number;
   value: string;
+  valuePosition: number;
 };
 
 export default async function HomePage({
@@ -32,7 +34,7 @@ export default async function HomePage({
       }
     | null = null;
   let types: CardType[] = [];
-  let votedTypes: CardType[] = [];
+  let votedTypes: { system: string; value: string }[] = [];
 
   if (user) {
     const { data: profileRow } = await supabase
@@ -47,12 +49,14 @@ export default async function HomePage({
       .from("type_systems")
       .select("id,name,position")
       .eq("is_active", true)
-      .order("position", { ascending: true });
+      .order("position", { ascending: true })
+      .order("name", { ascending: true });
     const { data: typeValueRows } = await supabase
       .from("type_values")
       .select("id,code,name,position")
       .eq("is_active", true)
-      .order("position", { ascending: true });
+      .order("position", { ascending: true })
+      .order("name", { ascending: true });
     const { data: userTypeRows } = await supabase
       .from("user_types")
       .select("type_system_id,type_value_id")
@@ -77,11 +81,19 @@ export default async function HomePage({
           return [
             {
               system: system.name,
-              value: value.name || value.code
+              systemPosition: system.position ?? 0,
+              value: value.name || value.code,
+              valuePosition: value.position ?? 0
             }
           ];
         })
-        .sort((a, b) => a.system.localeCompare(b.system)) ?? [];
+        .sort((a, b) => {
+          if (a.systemPosition !== b.systemPosition) {
+            return a.systemPosition - b.systemPosition;
+          }
+
+          return a.valuePosition - b.valuePosition;
+        }) ?? [];
     votedTypes = await getTopVotedTypesForUser(supabase, user.id);
   }
 
