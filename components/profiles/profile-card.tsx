@@ -30,7 +30,6 @@ export function ProfileCard({
 }: ProfileCardProps) {
   const normalizedHandle = handle.replace(/^@/, "");
   const canLinkToX = /^[A-Za-z0-9_]{1,15}$/.test(normalizedHandle);
-  const cacheSafeAvatarUrl = avatarUrl ? addAvatarCacheBuster(avatarUrl) : null;
 
   return (
     <article
@@ -42,12 +41,12 @@ export function ProfileCard({
       <div className="bg-gradient-to-br from-ringTeal via-ringBlue to-ringViolet p-5 text-white">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/80 bg-white/20 text-xl font-bold">
-            {cacheSafeAvatarUrl ? (
+            {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 alt=""
                 className="h-full w-full object-cover"
-                src={cacheSafeAvatarUrl}
+                src={avatarUrl}
               />
             ) : (
               displayName.slice(0, 1).toUpperCase()
@@ -93,11 +92,6 @@ export function ProfileCard({
       </div>
     </article>
   );
-}
-
-function addAvatarCacheBuster(url: string) {
-  const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}typring_avatar=${Date.now()}`;
 }
 
 function TypeSection({
