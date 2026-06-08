@@ -8,6 +8,7 @@ export type DisplayType = {
 };
 
 type VoteSummaryRow = {
+  first_voted_at: string | null;
   total_count: number;
   type_system_id: string;
   type_value_id: string;
@@ -144,12 +145,21 @@ function isBetterVoteRow(candidate: VoteSummaryRow, current: VoteSummaryRow) {
     return candidate.vote_count > current.vote_count;
   }
 
-  const candidatePercentage = candidate.vote_count / candidate.total_count;
-  const currentPercentage = current.vote_count / current.total_count;
+  const candidateFirstVotedAt = getTime(candidate.first_voted_at);
+  const currentFirstVotedAt = getTime(current.first_voted_at);
 
-  if (candidatePercentage !== currentPercentage) {
-    return candidatePercentage > currentPercentage;
+  if (candidateFirstVotedAt !== currentFirstVotedAt) {
+    return candidateFirstVotedAt < currentFirstVotedAt;
   }
 
   return candidate.type_value_id.localeCompare(current.type_value_id) < 0;
+}
+
+function getTime(value: string | null) {
+  if (!value) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
 }

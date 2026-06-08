@@ -20,6 +20,7 @@ type UserTypeRow = {
 };
 
 type VoteSummaryRow = {
+  first_voted_at: string | null;
   total_count: number;
   type_system_id: string;
   type_value_id: string;
@@ -155,6 +156,7 @@ export default async function UserProfilePage({
 
       return {
         percentage: Math.round((vote.vote_count / vote.total_count) * 100),
+        firstVotedAt: vote.first_voted_at,
         system: system.name,
         systemPosition: system.position ?? 0,
         totalCount: vote.total_count,
@@ -167,6 +169,7 @@ export default async function UserProfilePage({
       (
         item
       ): item is {
+        firstVotedAt: string | null;
         percentage: number;
         system: string;
         systemPosition: number;
@@ -183,6 +186,12 @@ export default async function UserProfilePage({
 
       if (a.voteCount !== b.voteCount) {
         return b.voteCount - a.voteCount;
+      }
+
+      const firstVoteDiff = getTime(a.firstVotedAt) - getTime(b.firstVotedAt);
+
+      if (firstVoteDiff !== 0) {
+        return firstVoteDiff;
       }
 
       return a.valuePosition - b.valuePosition;
@@ -361,4 +370,13 @@ function StatusMessage({ children }: { children: ReactNode }) {
       {children}
     </p>
   );
+}
+
+function getTime(value: string | null) {
+  if (!value) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
 }

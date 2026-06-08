@@ -1,4 +1,5 @@
 type VoteSummaryItem = {
+  firstVotedAt?: string | null;
   percentage: number;
   system: string;
   totalCount: number;
@@ -97,8 +98,24 @@ function groupBySystem(items: VoteSummaryItem[]) {
         return b.percentage - a.percentage;
       }
 
+      const firstVoteDiff =
+        getTime(a.firstVotedAt ?? null) - getTime(b.firstVotedAt ?? null);
+
+      if (firstVoteDiff !== 0) {
+        return firstVoteDiff;
+      }
+
       return a.value.localeCompare(b.value);
     }),
     system
   }));
+}
+
+function getTime(value: string | null) {
+  if (!value) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
 }
