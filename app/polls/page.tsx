@@ -31,7 +31,7 @@ type CountRow = {
 export default async function PollsPage({
   searchParams
 }: {
-  searchParams?: { error?: string };
+  searchParams?: { deleted?: string; error?: string };
 }) {
   const supabase = createSupabaseServerClient();
   const {
@@ -77,6 +77,11 @@ export default async function PollsPage({
       {searchParams?.error ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {searchParams.error}
+        </p>
+      ) : null}
+      {searchParams?.deleted ? (
+        <p className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
+          アンケートを削除しました。
         </p>
       ) : null}
 

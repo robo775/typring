@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BarChart3 } from "lucide-react";
+import { PollOwnerActions } from "@/components/polls/poll-owner-actions";
 import { PollShareActions } from "@/components/polls/poll-share-actions";
 import { submitPollResponse } from "@/lib/polls/actions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -21,7 +22,7 @@ export default async function PollDetailPage({
   searchParams
 }: {
   params: { slug: string };
-  searchParams?: { answered?: string; error?: string };
+  searchParams?: { answered?: string; error?: string; updated?: string };
 }) {
   const supabase = createSupabaseServerClient();
   const {
@@ -100,6 +101,11 @@ export default async function PollDetailPage({
             回答を保存しました。
           </p>
         ) : null}
+        {searchParams?.updated ? (
+          <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
+            アンケートを更新しました。
+          </p>
+        ) : null}
         {searchParams?.error ? (
           <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {searchParams.error}
@@ -143,6 +149,9 @@ export default async function PollDetailPage({
       </section>
 
       <aside className="space-y-4">
+        {user?.id === poll.creator_user_id ? (
+          <PollOwnerActions pollId={poll.id} slug={poll.slug} />
+        ) : null}
         <PollShareActions
           pollTitle={poll.title}
           pollUrl={pollUrl}

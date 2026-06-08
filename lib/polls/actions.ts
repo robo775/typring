@@ -112,6 +112,163 @@ export async function submitPollResponse(formData: FormData) {
   redirect(`/polls/${slug}?answered=1`);
 }
 
+export async function updatePoll(formData: FormData) {
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const pollId = getString(formData, "poll_id");
+  const slug = getString(formData, "slug");
+  const title = getString(formData, "title");
+  const question = getString(formData, "question");
+  const description = getString(formData, "description");
+  const status = getString(formData, "status") === "draft" ? "draft" : "published";
+  const options = getOptionDrafts(formData);
+
+  if (!pollId || !slug) {
+    redirect("/polls?error=poll_missing");
+  }
+
+  if (!title || !question) {
+    redirect(`/polls/${slug}/edit?error=title_question_required`);
+  }
+
+  if (options.length < 2) {
+    redirect(`/polls/${slug}/edit?error=options_required`);
+  }
+
+  const { data: poll } = await supabase
+    .from("polls")
+    .select("id,creator_user_id")
+    .eq("id", pollId)
+    .maybeSingle();
+
+  if (!poll || poll.creator_user_id !== user.id) {
+    redirect(`/polls/${slug}?error=owner_required`);
+  }
+
+  const { error: pollError } = await supabase
+    .from("polls")
+    .update({
+      description: description || null,
+      published_at: status === "published" ? new Date().toISOString() : null,
+      question,
+      status,
+      title
+    })
+    .eq("id", pollId)
+    .eq("creator_user_id", user.id);
+
+  if (pollError) {
+    redirect(`/polls/${slug}/edit?error=${encodeURIComponent(pollError.message)}`);
+  }
+
+  const keptOptionIds = options
+    .map((option) => option.id)
+    .filter((id): id is string => Boolean(id));
+
+  if (keptOptionIds.length > 0) {
+    const { error: deleteRemovedError } = await supabase
+      .from("poll_options")
+      .delete()
+      .eq("poll_id", pollId)
+      .not("id", "in", `(${keptOptionIds.join(",")})`);
+
+    if (deleteRemovedError) {
+      redirect(
+        `/polls/${slug}/edit?error=${encodeURIComponent(deleteRemovedError.message)}`
+      );
+    }
+  } else {
+    const { error: deleteAllError } = await supabase
+      .from("poll_options")
+      .delete()
+      .eq("poll_id", pollId);
+
+    if (deleteAllError) {
+      redirect(`/polls/${slug}/edit?error=${encodeURIComponent(deleteAllError.message)}`);
+    }
+  }
+
+  for (const [index, option] of options.entries()) {
+    if (option.id) {
+      const { error } = await supabase
+        .from("poll_options")
+        .update({
+          body: option.body,
+          position: index + 1
+        })
+        .eq("id", option.id)
+        .eq("poll_id", pollId);
+
+      if (error) {
+        redirect(`/polls/${slug}/edit?error=${encodeURIComponent(error.message)}`);
+      }
+    } else {
+      const { error } = await supabase.from("poll_options").insert({
+        body: option.body,
+        poll_id: pollId,
+        position: index + 1
+      });
+
+      if (error) {
+        redirect(`/polls/${slug}/edit?error=${encodeURIComponent(error.message)}`);
+      }
+    }
+  }
+
+  revalidatePath("/polls");
+  revalidatePath(`/polls/${slug}`);
+  revalidatePath(`/polls/${slug}/stats`);
+  redirect(`/polls/${slug}?updated=1`);
+}
+
+export async function deletePoll(formData: FormData) {
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const pollId = getString(formData, "poll_id");
+  const slug = getString(formData, "slug");
+
+  if (!pollId || !slug) {
+    redirect("/polls?error=poll_missing");
+  }
+
+  const { data: poll } = await supabase
+    .from("polls")
+    .select("id,creator_user_id")
+    .eq("id", pollId)
+    .maybeSingle();
+
+  if (!poll || poll.creator_user_id !== user.id) {
+    redirect(`/polls/${slug}?error=owner_required`);
+  }
+
+  const { error } = await supabase
+    .from("polls")
+    .delete()
+    .eq("id", pollId)
+    .eq("creator_user_id", user.id);
+
+  if (error) {
+    redirect(`/polls/${slug}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/polls");
+  redirect("/polls?deleted=1");
+}
+
 async function createUniqueSlug(
   supabase: ReturnType<typeof createSupabaseServerClient>,
   title: string
@@ -148,6 +305,25 @@ function getOptions(formData: FormData) {
 
     seen.add(option);
     options.push(option);
+  }
+
+  return options;
+}
+
+function getOptionDrafts(formData: FormData) {
+  const seen = new Set<string>();
+  const options: { body: string; id: string | null }[] = [];
+
+  for (let index = 1; index <= 10; index += 1) {
+    const body = getString(formData, `option_${index}`);
+    const id = getString(formData, `option_${index}_id`) || null;
+
+    if (!body || seen.has(body)) {
+      continue;
+    }
+
+    seen.add(body);
+    options.push({ body, id });
   }
 
   return options;
