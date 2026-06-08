@@ -11,7 +11,7 @@ export function AvatarRefreshForm() {
         <div>
           <h2 className="text-sm font-bold text-ink">プロフィール画像</h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            Xログイン情報に保存されている最新のアイコンをTypringへ反映します。
+            Xで再認証して、現在のXアイコンをTypringへ反映します。
           </p>
         </div>
         <button

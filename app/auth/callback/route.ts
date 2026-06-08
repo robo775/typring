@@ -8,10 +8,15 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const next = getSafeNextPath(requestUrl.searchParams.get("next"));
+  const isAvatarRefresh = requestUrl.searchParams.get("avatar_refresh") === "1";
   const redirectUrl = new URL(next, requestUrl.origin);
 
   if (next === "/me") {
     redirectUrl.searchParams.set("auth", "callback");
+  }
+
+  if (isAvatarRefresh) {
+    redirectUrl.searchParams.set("avatar_refreshed", "1");
   }
 
   const redirectResponse = NextResponse.redirect(redirectUrl);

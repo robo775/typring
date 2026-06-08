@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getTwitterProfileFromUser } from "@/lib/auth/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function updateMyProfile(formData: FormData) {
@@ -102,42 +101,25 @@ export async function updateMyProfile(formData: FormData) {
 
 export async function refreshMyAvatarFromX() {
   const supabase = createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login?next=/me");
-  }
-
-  const twitterProfile = getTwitterProfileFromUser(user);
-
-  if (!twitterProfile.avatar_url) {
-    redirect("/me?error=avatar_missing");
-  }
-
-  const { data: existingProfile } = await supabase
-    .from("profiles")
-    .select("twitter_handle")
-    .eq("id", user.id)
-    .maybeSingle();
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      avatar_url: twitterProfile.avatar_url
-    })
-    .eq("id", user.id);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    options: {
+      redirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(
+        "/me"
+      )}&avatar_refresh=1`
+    },
+    provider: "x"
+  });
 
   if (error) {
     redirect(`/me?error=${encodeURIComponent(error.message)}`);
   }
 
-  revalidatePath("/me");
-  if (existingProfile?.twitter_handle) {
-    revalidatePath(`/users/${existingProfile.twitter_handle}`);
+  if (data.url) {
+    redirect(data.url);
   }
 
-  redirect("/me?avatar_refreshed=1");
+  redirect("/me?error=oauth_url_missing");
 }
 
 function getString(formData: FormData, key: string) {
