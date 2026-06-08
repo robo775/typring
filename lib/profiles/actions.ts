@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getTwitterProfileFromUser } from "@/lib/auth/profile";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function updateMyProfile(formData: FormData) {
@@ -17,7 +18,6 @@ export async function updateMyProfile(formData: FormData) {
   const displayName = getString(formData, "display_name");
   const bio = getString(formData, "bio");
   const allowExternalTyping = formData.get("allow_external_typing") === "on";
-  const showQuizHistory = formData.get("show_quiz_history") === "on";
 
   if (!displayName) {
     redirect("/me?error=display_name_required");
@@ -42,8 +42,7 @@ export async function updateMyProfile(formData: FormData) {
     .update({
       allow_external_typing: allowExternalTyping,
       bio,
-      display_name: displayName,
-      show_quiz_history: showQuizHistory
+      display_name: displayName
     })
     .eq("id", user.id);
 
@@ -99,6 +98,46 @@ export async function updateMyProfile(formData: FormData) {
   }
 
   redirect("/me?saved=1");
+}
+
+export async function refreshMyAvatarFromX() {
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login?next=/me");
+  }
+
+  const twitterProfile = getTwitterProfileFromUser(user);
+
+  if (!twitterProfile.avatar_url) {
+    redirect("/me?error=avatar_missing");
+  }
+
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("twitter_handle")
+    .eq("id", user.id)
+    .maybeSingle();
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      avatar_url: twitterProfile.avatar_url
+    })
+    .eq("id", user.id);
+
+  if (error) {
+    redirect(`/me?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/me");
+  if (existingProfile?.twitter_handle) {
+    revalidatePath(`/users/${existingProfile.twitter_handle}`);
+  }
+
+  redirect("/me?avatar_refreshed=1");
 }
 
 function getString(formData: FormData, key: string) {

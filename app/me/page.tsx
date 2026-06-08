@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DeleteAccountSection } from "@/components/account/delete-account-section";
+import { AvatarRefreshForm } from "@/components/profiles/avatar-refresh-form";
 import { ProfileCard } from "@/components/profiles/profile-card";
 import { ProfileEditForm } from "@/components/profiles/profile-edit-form";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -10,7 +11,7 @@ import { getTopVotedTypesForUser } from "@/lib/votes/queries";
 export default async function MePage({
   searchParams
 }: {
-  searchParams?: { error?: string; saved?: string };
+  searchParams?: { avatar_refreshed?: string; error?: string; saved?: string };
 }) {
   const supabase = createSupabaseServerClient();
   const {
@@ -117,6 +118,11 @@ export default async function MePage({
               保存しました。
             </p>
           ) : null}
+          {searchParams?.avatar_refreshed ? (
+            <p className="mt-4 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
+              Xアイコンを再取得しました。
+            </p>
+          ) : null}
           {searchParams?.error ? (
             <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {searchParams.error}
@@ -130,6 +136,7 @@ export default async function MePage({
               自分のプロフィールを見る
             </Link>
           ) : null}
+          <AvatarRefreshForm />
           <ProfileEditForm
             allowExternalTyping={visibilitySettings?.allow_external_typing ?? true}
             bio={bio}
