@@ -32,6 +32,11 @@ export default function GamesPage() {
                 <p className="mt-2 text-sm leading-6 text-slate-600">
                   {game.description}
                 </p>
+                {game.id === "pyramid-maker" ? (
+                  <p className="mt-3 text-xs font-semibold text-slate-500">
+                    原案: 具沢山様（@1004morgenstern）
+                  </p>
+                ) : null}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <span className="rounded-full bg-ink px-3 py-1 text-xs font-bold text-white">
                     遊ぶ
