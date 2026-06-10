@@ -1,10 +1,7 @@
 import { pyramidBackgrounds } from "@/data/pyramidBackgrounds";
+import { PyramidPartShape } from "@/components/pyramid/pyramid-part-shape";
 import { pyramidParts } from "@/data/pyramidParts";
-import type {
-  PlacedPyramidPart,
-  PyramidBackground,
-  PyramidPartVisual
-} from "@/types/pyramid";
+import type { PlacedPyramidPart, PyramidBackground } from "@/types/pyramid";
 
 export function PyramidPreview({
   backgroundId,
@@ -97,7 +94,7 @@ function PyramidScene({
                 placedPart.flipX ? -placedPart.scale : placedPart.scale
               } ${placedPart.scale})`}
             >
-              <PartShape color={part.color} visual={part.visual} />
+              <PyramidPartShape color={part.color} visual={part.visual} />
             </g>
           );
         })}
@@ -124,101 +121,4 @@ function PyramidScene({
       </text>
     </>
   );
-}
-
-function PartShape({
-  color,
-  visual
-}: {
-  color: string;
-  visual: PyramidPartVisual;
-}) {
-  switch (visual) {
-    case "antenna":
-      return (
-        <>
-          <rect fill={color} height="80" rx="8" width="22" x="-11" y="-55" />
-          <circle cx="0" cy="-70" fill="#f8fafc" r="22" stroke={color} strokeWidth="8" />
-          <path d="M-45 -92 Q0 -125 45 -92" fill="none" stroke={color} strokeWidth="8" />
-        </>
-      );
-    case "arch":
-      return (
-        <path
-          d="M-58 58 V-8 C-58 -88 58 -88 58 -8 V58 H22 V-8 C22 -42 -22 -42 -22 -8 V58 Z"
-          fill={color}
-          stroke="#f8fafc"
-          strokeWidth="6"
-        />
-      );
-    case "banner":
-      return (
-        <>
-          <path d="M-74 -36 H74 V18 H-74 Z" fill={color} />
-          <path d="M-74 18 L-42 48 L-10 18 L22 48 L54 18 L74 38 V18 Z" fill="#fbbf24" />
-        </>
-      );
-    case "circle":
-      return <circle cx="0" cy="0" fill={color} opacity="0.88" r="58" />;
-    case "cloud":
-      return (
-        <path
-          d="M-78 24 C-92 -22 -40 -48 -18 -22 C2 -70 70 -52 62 0 C102 -2 108 54 56 58 H-54 C-100 58 -112 28 -78 24 Z"
-          fill={color}
-          opacity="0.7"
-        />
-      );
-    case "door":
-      return (
-        <path
-          d="M-42 58 V-2 C-42 -58 42 -58 42 -2 V58 Z"
-          fill={color}
-          stroke="#fde68a"
-          strokeWidth="7"
-        />
-      );
-    case "eye":
-      return (
-        <>
-          <path
-            d="M-70 0 C-34 -45 34 -45 70 0 C34 45 -34 45 -70 0 Z"
-            fill="#f8fafc"
-            stroke={color}
-            strokeWidth="8"
-          />
-          <circle cx="0" cy="0" fill={color} r="23" />
-        </>
-      );
-    case "plant":
-      return (
-        <>
-          <rect fill="#854d0e" height="58" width="16" x="-8" y="0" />
-          <circle cx="-28" cy="-8" fill={color} r="32" />
-          <circle cx="22" cy="-24" fill={color} r="38" />
-          <circle cx="34" cy="10" fill={color} r="28" />
-        </>
-      );
-    case "sign":
-      return (
-        <>
-          <rect fill={color} height="64" rx="10" width="126" x="-63" y="-46" />
-          <rect fill="#475569" height="55" width="12" x="-6" y="18" />
-          <path d="M-40 -13 H40" stroke="#fff" strokeLinecap="round" strokeWidth="8" />
-        </>
-      );
-    case "stairs":
-      return (
-        <path
-          d="M-70 58 H70 V34 H42 V12 H16 V-10 H-12 V-32 H-70 Z"
-          fill={color}
-        />
-      );
-    case "triangle":
-      return <polygon fill={color} points="0,-70 68,58 -68,58" />;
-    case "platform":
-      return <ellipse cx="0" cy="18" fill={color} rx="76" ry="32" />;
-    case "rect":
-    default:
-      return <rect fill={color} height="92" rx="14" width="120" x="-60" y="-46" />;
-  }
 }
