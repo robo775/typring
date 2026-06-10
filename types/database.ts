@@ -348,6 +348,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      pyramid_creations: {
+        Row: {
+          background_id: string;
+          category_count: number;
+          created_at: string;
+          id: string;
+          is_public: boolean;
+          part_count: number;
+          placed_parts: Json;
+          title: string;
+          total_score: number;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          background_id: string;
+          category_count?: number;
+          created_at?: string;
+          id?: string;
+          is_public?: boolean;
+          part_count?: number;
+          placed_parts?: Json;
+          title: string;
+          total_score?: number;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          background_id?: string;
+          category_count?: number;
+          created_at?: string;
+          id?: string;
+          is_public?: boolean;
+          part_count?: number;
+          placed_parts?: Json;
+          title?: string;
+          total_score?: number;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

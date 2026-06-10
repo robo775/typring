@@ -126,6 +126,14 @@ Current scoring:
 
 The current level formula is `Lv.1 + floor(total_points / 50)`.
 
+### Mini Game SQL
+
+`PYRAMID MAKER` uses localStorage for in-progress editing and Supabase for published creations. Apply this migration before using publish, gallery, and ranking in production:
+
+- `supabase/migrations/20260610100000_pyramid_creations.sql`
+
+The table stores public pyramid creations, score metadata, and the placed part layout. RLS allows anyone to read public creations, while only the owner can create, update, or delete their own creations.
+
 ## Local Setup
 
 Install dependencies:
