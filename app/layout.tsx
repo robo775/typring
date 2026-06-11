@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 const navItems = [
   { href: "/", label: "ホーム", icon: Home },
   { href: "/search", label: "検索", icon: Search },
-  { href: "/bookmarks", label: "保存", icon: Bookmark },
+  { href: "/bookmarks", label: "ブックマーク", icon: Bookmark },
   { href: "/polls", label: "アンケート", icon: ClipboardList },
   { href: "/games", label: "ゲーム", icon: Gamepad2 },
   { href: "/stats", label: "統計", icon: BarChart3 },
