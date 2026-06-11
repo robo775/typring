@@ -7,6 +7,7 @@ import {
   Crown,
   RefreshCw,
   Send,
+  Share2,
   Skull,
   Ticket,
   XCircle
@@ -162,6 +163,14 @@ export default async function TypeWerewolfRoomPage({
     room.status === "finished" ? players.map((player) => player.user_id) : [],
     room.type_system_id
   );
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const roomUrl = `${appUrl.replace(/\/$/, "")}/games/type-werewolf/rooms/${room.id}`;
+  const shareUrl = new URL("https://x.com/intent/tweet");
+  shareUrl.searchParams.set(
+    "text",
+    `Typringの類型人狼で遊びませんか？\n部屋コード: ${room.room_code}\n対象類型: ${typeSystem?.name ?? "類型"}\n\n#Typring #類型人狼`
+  );
+  shareUrl.searchParams.set("url", roomUrl);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-8">
@@ -199,6 +208,17 @@ export default async function TypeWerewolfRoomPage({
               <Copy className="h-4 w-4" />
               {room.room_code}
             </span>
+            {room.status === "waiting" ? (
+              <a
+                className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-bold text-white transition hover:-translate-y-0.5"
+                href={shareUrl.toString()}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                <Share2 className="h-4 w-4" />
+                Xで募集
+              </a>
+            ) : null}
             {isHost ? (
               <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-2 text-sm font-bold text-amber-700">
                 <Crown className="h-4 w-4" />
