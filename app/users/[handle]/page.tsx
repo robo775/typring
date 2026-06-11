@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { AdSlot } from "@/components/ads/ad-slot";
+import { BookmarkButton } from "@/components/bookmarks/bookmark-button";
 import { CompatibilityPanel } from "@/components/compatibility/compatibility-panel";
 import { ProfileIntroductions } from "@/components/introductions/profile-introductions";
 import { MutualBadge } from "@/components/mutuals/mutual-badge";
@@ -57,6 +58,7 @@ export default async function UserProfilePage({
 }: {
   params: { handle: string };
   searchParams?: {
+    bookmark?: string;
     error?: string;
     introduction_deleted?: string;
     introduced?: string;
@@ -240,6 +242,15 @@ export default async function UserProfilePage({
           viewerUserId: user.id
         })
       : false;
+  const { data: ownBookmark } =
+    user && user.id !== profile.id
+      ? await supabase
+          .from("profile_bookmarks")
+          .select("target_user_id")
+          .eq("viewer_user_id", user.id)
+          .eq("target_user_id", profile.id)
+          .maybeSingle()
+      : { data: null };
   const { data: latestCompatibility } =
     showAiCompatibility && user && user.id !== profile.id
       ? await supabase
@@ -274,6 +285,13 @@ export default async function UserProfilePage({
       </div>
       <section className="space-y-4">
         <MutualBadge isMutual={Boolean(isMutual)} />
+        <BookmarkButton
+          handle={profile.twitter_handle ?? handle}
+          isBookmarked={Boolean(ownBookmark)}
+          isLoggedIn={Boolean(user)}
+          isOwnProfile={user?.id === profile.id}
+          targetUserId={profile.id}
+        />
         <ProfileShareActions
           avatarUrl={profile.avatar_url}
           bio={profile.bio ?? "このユーザーはまだ自己紹介を書いていません。"}
@@ -286,6 +304,12 @@ export default async function UserProfilePage({
         />
         {searchParams?.voted ? (
           <StatusMessage>他者診断の投票を保存しました。</StatusMessage>
+        ) : null}
+        {searchParams?.bookmark === "saved" ? (
+          <StatusMessage>プロフィールをブックマークしました。</StatusMessage>
+        ) : null}
+        {searchParams?.bookmark === "removed" ? (
+          <StatusMessage>ブックマークを解除しました。</StatusMessage>
         ) : null}
         {searchParams?.introduced ? (
           <StatusMessage>紹介文を保存しました。</StatusMessage>

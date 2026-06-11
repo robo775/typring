@@ -54,6 +54,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      profile_bookmarks: {
+        Row: {
+          created_at: string;
+          target_user_id: string;
+          viewer_user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          target_user_id: string;
+          viewer_user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          target_user_id?: string;
+          viewer_user_id?: string;
+        };
+        Relationships: [];
+      };
       type_systems: {
         Row: {
           code: string;
