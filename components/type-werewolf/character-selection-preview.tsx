@@ -120,7 +120,7 @@ export function CharacterSelectionPreview() {
           </button>
         </div>
         <p className="mt-3 text-xs leading-5 text-slate-500">
-          この画面は待機画面UIの土台です。実際の参加確定では、サーバー側で同一キャラクターの競合を防止します。
+          実際の部屋では、サーバー側で同一キャラクターの競合を防止します。
         </p>
       </div>
     </section>
