@@ -30,7 +30,7 @@ export function SearchForm({
   return (
     <form className="grid gap-5" method="get">
       <label className="grid gap-2 text-sm font-semibold text-ink">
-        Xハンドル
+        キーワード
         <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-500 transition focus-within:border-ringTeal">
           <Search className="h-4 w-4" />
           <input
@@ -38,7 +38,7 @@ export function SearchForm({
             defaultValue={handleQuery}
             maxLength={80}
             name="q"
-            placeholder="ハンドル名で検索"
+            placeholder="名前・@ID・自己紹介で検索"
           />
         </div>
       </label>

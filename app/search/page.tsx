@@ -34,7 +34,7 @@ export default async function SearchPage({
   searchParams?: SearchParams;
 }) {
   const supabase = createSupabaseServerClient();
-  const handleQuery = getParam(searchParams, "q")
+  const keywordQuery = getParam(searchParams, "q")
     .replace(/^@/, "")
     .trim()
     .slice(0, 80);
@@ -59,7 +59,7 @@ export default async function SearchPage({
     ([typeSystemId, typeValueId]) => ({ typeSystemId, typeValueId })
   );
   const profileResults = await searchProfiles({
-    handleQuery,
+    keywordQuery,
     page,
     selectedTypeValues,
     supabase
@@ -79,7 +79,7 @@ export default async function SearchPage({
       />
       <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
         <SearchForm
-          handleQuery={handleQuery}
+          handleQuery={keywordQuery}
           selectedTypeValueIds={selectedTypeValueIds}
           typeSystems={typeSystems}
           typeValues={typeValues}
@@ -167,12 +167,12 @@ function getSelectedTypeValueIds(
 }
 
 async function searchProfiles({
-  handleQuery,
+  keywordQuery,
   page,
   selectedTypeValues,
   supabase
 }: {
-  handleQuery: string;
+  keywordQuery: string;
   page: number;
   selectedTypeValues: { typeSystemId: string; typeValueId: string }[];
   supabase: ReturnType<typeof createSupabaseServerClient>;
@@ -193,8 +193,15 @@ async function searchProfiles({
     .order("created_at", { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-  if (handleQuery) {
-    query = query.ilike("twitter_handle", `%${handleQuery}%`);
+  if (keywordQuery) {
+    const likePattern = `%${escapePostgrestLikePattern(keywordQuery)}%`;
+    query = query.or(
+      [
+        `twitter_handle.ilike.${likePattern}`,
+        `display_name.ilike.${likePattern}`,
+        `bio.ilike.${likePattern}`
+      ].join(",")
+    );
   }
 
   if (matchedUserIds) {
@@ -203,6 +210,14 @@ async function searchProfiles({
 
   const { data } = await query;
   return (data ?? []) as ProfileResult[];
+}
+
+function escapePostgrestLikePattern(value: string) {
+  return value
+    .replace(/[(),]/g, " ")
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_");
 }
 
 async function getUserIdsMatchingAllTypes(
