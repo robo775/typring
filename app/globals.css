@@ -40,3 +40,104 @@ a {
 ::selection {
   background: rgba(22, 184, 166, 0.24);
 }
+
+/* ピラミッドメーカー: SVGパーツアニメーション */
+@keyframes pyr-flicker {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  45% {
+    opacity: 0.82;
+    transform: scale(0.96);
+  }
+  70% {
+    opacity: 0.94;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes pyr-drift {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(26px);
+  }
+}
+
+@keyframes pyr-water {
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translateY(3px);
+  }
+}
+
+@keyframes pyr-blink {
+  0%,
+  88%,
+  100% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes pyr-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+.pyr-flicker {
+  animation: pyr-flicker 1.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+.pyr-drift {
+  animation: pyr-drift 14s ease-in-out infinite;
+}
+
+.pyr-drift-slow {
+  animation: pyr-drift 22s ease-in-out infinite;
+}
+
+.pyr-water {
+  animation: pyr-water 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.pyr-blink {
+  animation: pyr-blink 3.2s linear infinite;
+}
+
+.pyr-float {
+  animation: pyr-float 3.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pyr-flicker,
+  .pyr-drift,
+  .pyr-drift-slow,
+  .pyr-water,
+  .pyr-blink,
+  .pyr-float {
+    animation: none;
+  }
+}

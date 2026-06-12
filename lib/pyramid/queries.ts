@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { PyramidMode } from "@/types/pyramid";
 
 export type PyramidCreationRow = {
   background_id: string;
@@ -8,22 +9,29 @@ export type PyramidCreationRow = {
     | { display_name: string; twitter_handle: string | null }[]
     | null;
   id: string;
+  mode: PyramidMode;
   placed_parts: unknown;
+  synergy_bonus: number;
   title: string;
   total_score: number;
 };
 
 export async function getPublicPyramidCreations(
-  order: "created_at" | "total_score"
+  order: "created_at" | "total_score",
+  mode?: PyramidMode
 ) {
   const supabase = createSupabaseServerClient();
-  const query = supabase
+  let query = supabase
     .from("pyramid_creations")
     .select(
-      "id,title,background_id,placed_parts,total_score,created_at,creator:profiles!pyramid_creations_user_id_fkey(display_name,twitter_handle)"
+      "id,title,background_id,placed_parts,total_score,mode,synergy_bonus,created_at,creator:profiles!pyramid_creations_user_id_fkey(display_name,twitter_handle)"
     )
     .eq("is_public", true)
     .limit(order === "total_score" ? 10 : 24);
+
+  if (mode) {
+    query = query.eq("mode", mode);
+  }
 
   const { data } =
     order === "total_score"

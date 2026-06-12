@@ -17,7 +17,7 @@ type RoomRow = {
 export default async function TypeWerewolfPage({
   searchParams
 }: {
-  searchParams?: { error?: string };
+  searchParams?: { deleted?: string; error?: string };
 }) {
   const supabase = createSupabaseServerClient();
   const {
@@ -62,6 +62,8 @@ export default async function TypeWerewolfPage({
   const hostNameMap = new Map(
     (hostProfiles ?? []).map((profile) => [profile.id, profile.display_name])
   );
+  const currentRoom = user ? await getCurrentTypeWerewolfRoom(supabase, user.id) : null;
+  const isLocked = Boolean(currentRoom);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
@@ -101,6 +103,26 @@ export default async function TypeWerewolfPage({
         </p>
       ) : null}
 
+      {searchParams?.deleted ? (
+        <p className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-bold text-teal-700">
+          ルームを削除しました。
+        </p>
+      ) : null}
+
+      {currentRoom ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800 sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            現在参加中、または作成済みのルームがあります。別の部屋を作成・参加するには、先にそのルームから退出するか、作成者の場合はルームを削除してください。
+          </p>
+          <Link
+            className="inline-flex shrink-0 justify-center rounded-full bg-amber-600 px-4 py-2 text-sm font-bold text-white"
+            href={`/games/type-werewolf/rooms/${currentRoom.room_id}`}
+          >
+            ルームへ戻る
+          </Link>
+        </div>
+      ) : null}
+
       <section className="grid gap-4 lg:grid-cols-[360px_1fr]">
         <form
           action={createTypeWerewolfRoom}
@@ -134,7 +156,7 @@ export default async function TypeWerewolfPage({
           </label>
           <button
             className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 disabled:bg-slate-300"
-            disabled={!user}
+            disabled={!user || isLocked}
             type="submit"
           >
             部屋を作成
@@ -168,7 +190,7 @@ export default async function TypeWerewolfPage({
               />
               <button
                 className="rounded-full bg-slate-900 px-3 py-2 text-xs font-bold text-white disabled:bg-slate-300"
-                disabled={!user}
+                disabled={!user || isLocked}
                 type="submit"
               >
                 入室
@@ -228,12 +250,41 @@ export default async function TypeWerewolfPage({
 
 function getErrorMessage(error: string) {
   const messages: Record<string, string> = {
+    already_in_room:
+      "すでに参加中、または作成済みのルームがあります。先に退出または削除してください。",
     room_code_required: "部屋コードを入力してください。",
     room_create_failed: "部屋を作成できませんでした。",
     room_not_found: "部屋が見つかりませんでした。",
+    room_not_waiting: "待機中の部屋ではありません。",
     self_type_required: "この類型の自認登録が必要です。先にマイページで登録してください。",
     type_system_required: "対象類型を選択してください。"
   };
 
   return messages[error] ?? error;
+}
+
+async function getCurrentTypeWerewolfRoom(
+  supabase: ReturnType<typeof createSupabaseServerClient>,
+  userId: string
+) {
+  const { data: hostedRooms } = await supabase
+    .from("type_werewolf_rooms")
+    .select("id")
+    .eq("host_user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  const hostedRoom = hostedRooms?.[0];
+  if (hostedRoom) {
+    return { room_id: hostedRoom.id };
+  }
+
+  const { data: playerRooms } = await supabase
+    .from("type_werewolf_players")
+    .select("room_id")
+    .eq("user_id", userId)
+    .order("joined_at", { ascending: false })
+    .limit(1);
+
+  return playerRooms?.[0] ?? null;
 }

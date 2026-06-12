@@ -1,5 +1,14 @@
+import {
+  GroundShadow,
+  IsoBox,
+  IsoCylinder,
+  IsoPyramid
+} from "@/components/pyramid/iso-helpers";
+import { shadeColor } from "@/lib/pyramid/color";
 import type { PyramidPartVisual } from "@/types/pyramid";
 
+// 全ビジュアルは±80の基準ボックス内・接地ラインy≒58で描画する。
+// 光源は左上固定（iso-helpersの面シェーディングと統一）。
 export function PyramidPartShape({
   color,
   visual
@@ -11,239 +20,639 @@ export function PyramidPartShape({
     case "antenna":
       return (
         <>
-          <ellipse cx="0" cy="54" fill="#0f172a" opacity="0.18" rx="48" ry="10" />
-          <rect fill="#475569" height="64" rx="8" width="26" x="-13" y="-28" />
-          <rect fill="#94a3b8" height="18" rx="6" width="70" x="-35" y="-56" />
-          <circle cx="-18" cy="-47" fill="#22d3ee" r="8" />
-          <circle cx="18" cy="-47" fill="#38bdf8" r="8" />
-          <path d="M-58 -75 Q0 -112 58 -75" fill="none" stroke={color} strokeWidth="8" />
-          <path d="M-45 -88 L-70 -112 M45 -88 L70 -112" stroke={color} strokeLinecap="round" strokeWidth="7" />
+          <GroundShadow rx={40} />
+          <g transform="translate(0 58)">
+            <IsoBox color="#64748b" d={26} h={20} w={26} />
+          </g>
+          <g transform="translate(0 42)">
+            <IsoBox color="#475569" d={12} h={64} w={12} />
+          </g>
+          <g transform="translate(0 -22)">
+            <IsoBox color={color} d={26} h={26} w={52} />
+          </g>
+          <circle cx="-14" cy="-32" fill="#22d3ee" r="6" />
+          <circle cx="10" cy="-38" fill="#38bdf8" r="6" />
+          <path
+            d="M-44 -62 Q0 -92 44 -62"
+            fill="none"
+            stroke={shadeColor(color, 16)}
+            strokeLinecap="round"
+            strokeWidth="7"
+          />
+          <path
+            d="M-34 -72 L-56 -94 M34 -72 L56 -94"
+            stroke={shadeColor(color, 16)}
+            strokeLinecap="round"
+            strokeWidth="6"
+          />
         </>
       );
     case "arch":
       return (
         <>
-          <ellipse cx="0" cy="62" fill="#0f172a" opacity="0.16" rx="72" ry="12" />
+          <GroundShadow rx={62} />
+          {/* 奥行き面 */}
           <path
-            d="M-65 58 V-6 C-65 -94 65 -94 65 -6 V58 H24 V-8 C24 -42 -24 -42 -24 -8 V58 Z"
-            fill="#d8c7a6"
-            stroke="#7c5f3d"
-            strokeWidth="6"
+            d="M-50 50 V-10 C-50 -78 62 -78 62 -10 V42 H40 V-8 C40 -44 -28 -44 -28 -8 V50 Z"
+            fill={shadeColor(color, -28)}
           />
-          <path d="M-50 -22 C-32 -72 32 -72 50 -22" fill="none" stroke={color} strokeWidth="10" />
-          <circle cx="-38" cy="-36" fill="#fb7185" r="12" />
-          <circle cx="38" cy="-36" fill="#fb7185" r="12" />
+          {/* 正面 */}
+          <path
+            d="M-62 58 V-2 C-62 -70 50 -70 50 -2 V58 H28 V0 C28 -36 -40 -36 -40 0 V58 Z"
+            fill={shadeColor(color, 6)}
+          />
+          <path
+            d="M-62 -2 C-62 -70 50 -70 50 -2"
+            fill="none"
+            stroke={shadeColor(color, 26)}
+            strokeWidth="7"
+          />
+          <circle cx="-36" cy="-26" fill="#fb7185" r="9" />
+          <circle cx="24" cy="-26" fill="#fb7185" r="9" />
         </>
       );
     case "banner":
       return (
         <>
-          <path d="M-70 -60 V62 M70 -60 V62" stroke="#8b5e34" strokeLinecap="round" strokeWidth="9" />
-          <path d="M-78 -52 H78 V24 H-78 Z" fill={color} stroke="#7f1d1d" strokeWidth="5" />
-          <path d="M-78 24 L-46 54 L-14 24 L18 54 L50 24 L78 48 V24 Z" fill="#fbbf24" />
-          <path d="M0 -36 L18 -8 L0 20 L-18 -8 Z" fill="#fde68a" />
+          <GroundShadow rx={56} />
+          <g transform="translate(-58 58)">
+            <IsoBox color="#8b5e34" d={8} h={116} w={8} />
+          </g>
+          <g transform="translate(58 50)">
+            <IsoBox color="#8b5e34" d={8} h={108} w={8} />
+          </g>
+          {/* 旗本体（風になびく台形） */}
+          <path
+            d="M-58 -54 L58 -46 L58 16 L-58 24 Z"
+            fill={shadeColor(color, 0)}
+          />
+          <path
+            d="M-58 -54 L58 -46 L58 -32 L-58 -40 Z"
+            fill={shadeColor(color, 18)}
+          />
+          <path
+            d="M-58 24 L-30 44 L-2 22 L26 42 L58 16 L58 4 L-58 12 Z"
+            fill="#fbbf24"
+          />
+          <path
+            d="M0 -30 L15 -8 L0 14 L-15 -8 Z"
+            fill="#fde68a"
+            stroke={shadeColor(color, -20)}
+            strokeWidth="3"
+          />
         </>
       );
     case "bench":
       return (
         <>
-          <ellipse cx="0" cy="58" fill="#0f172a" opacity="0.14" rx="78" ry="12" />
-          <rect fill="#b45309" height="42" rx="12" width="130" x="-65" y="-10" />
-          <rect fill="#f97316" height="35" rx="10" width="58" x="-52" y="-42" />
-          <rect fill="#fb923c" height="35" rx="10" width="58" x="0" y="-42" />
-          <circle cx="-34" cy="-18" fill="#fde68a" r="9" />
-          <circle cx="34" cy="-18" fill="#fde68a" r="9" />
+          <GroundShadow rx={62} />
+          <g transform="translate(0 58)">
+            <IsoBox color="#b45309" d={44} h={26} w={110} />
+          </g>
+          <g transform="translate(-26 30)">
+            <IsoBox color="#f97316" d={36} h={26} w={46} />
+          </g>
+          <g transform="translate(26 33)">
+            <IsoBox color="#fb923c" d={36} h={26} w={46} />
+          </g>
+          <g transform="translate(12 6)">
+            <IsoBox color="#fdba74" d={10} h={40} w={100} />
+          </g>
+          <circle cx="-26" cy="-4" fill="#fde68a" r="8" />
+          <circle cx="30" cy="0" fill="#fde68a" r="8" />
         </>
       );
     case "circle":
       return (
         <>
-          <path d="M0 50 V78" stroke="#7c2d12" strokeWidth="7" />
-          {[-44, -18, 12, 42, 0].map((cx, index) => (
-            <circle
-              cx={cx}
-              cy={index % 2 === 0 ? -8 : -34}
-              fill={["#ef4444", "#22c55e", "#3b82f6", "#eab308", color][index]}
-              key={cx}
-              r="24"
-              stroke="#fff"
-              strokeWidth="4"
-            />
-          ))}
-          <rect fill="#92400e" height="20" rx="8" width="32" x="-16" y="72" />
+          <GroundShadow rx={30} />
+          <path
+            d="M-30 -20 L0 58 M0 -34 L0 58 M32 -16 L0 58"
+            stroke="#94a3b8"
+            strokeWidth="3"
+          />
+          <g className="pyr-float">
+            {[
+              [-34, -28, "#ef4444"],
+              [2, -46, "#22c55e"],
+              [34, -22, "#3b82f6"],
+              [-12, -8, "#eab308"],
+              [20, 2, color]
+            ].map(([cx, cy, fill]) => (
+              <g key={`${cx}-${cy}`}>
+                <ellipse
+                  cx={Number(cx)}
+                  cy={Number(cy)}
+                  fill={String(fill)}
+                  rx="19"
+                  ry="22"
+                />
+                <ellipse
+                  cx={Number(cx) - 6}
+                  cy={Number(cy) - 8}
+                  fill="#ffffff"
+                  opacity="0.45"
+                  rx="6"
+                  ry="8"
+                />
+              </g>
+            ))}
+          </g>
+          <g transform="translate(0 58)">
+            <IsoBox color="#92400e" d={18} h={14} w={26} />
+          </g>
         </>
       );
     case "cloud":
       return (
-        <path
-          d="M-82 24 C-98 -24 -42 -52 -18 -22 C4 -74 74 -54 66 0 C106 -4 116 58 58 62 H-58 C-106 62 -118 28 -82 24 Z"
-          fill="#e2e8f0"
-          opacity="0.82"
-          stroke="#cbd5e1"
-          strokeWidth="4"
-        />
+        <g className="pyr-drift-slow">
+          <path
+            d="M-82 24 C-98 -24 -42 -52 -18 -22 C4 -74 74 -54 66 0 C106 -4 116 58 58 62 H-58 C-106 62 -118 28 -82 24 Z"
+            fill="#f1f5f9"
+            opacity="0.88"
+          />
+          <path
+            d="M-82 24 C-98 -24 -42 -52 -18 -22 C4 -74 74 -54 66 0 C80 -1 90 6 94 18 C40 8 -40 10 -94 26 C-92 25 -88 24 -82 24 Z"
+            fill="#ffffff"
+            opacity="0.9"
+          />
+        </g>
       );
     case "door":
       return (
         <>
-          <ellipse cx="0" cy="60" fill="#0f172a" opacity="0.18" rx="60" ry="12" />
-          <path d="M-46 60 V-4 C-46 -64 46 -64 46 -4 V60 Z" fill={color} stroke="#78350f" strokeWidth="7" />
-          <path d="M-28 55 V-2 C-28 -34 28 -34 28 -2 V55 Z" fill="#1f2937" opacity="0.72" />
-          <circle cx="18" cy="20" fill="#facc15" r="6" />
+          <GroundShadow rx={52} />
+          {/* 壁の厚み付きの入口 */}
+          <g transform="translate(0 58)">
+            <IsoBox color={color} d={30} h={104} w={92} />
+          </g>
+          <path
+            d="M-30 52 V-6 C-30 -42 26 -42 26 -6 V52 Z"
+            fill="#100c08"
+            opacity="0.85"
+          />
+          <path
+            d="M-30 -6 C-30 -42 26 -42 26 -6"
+            fill="none"
+            stroke={shadeColor(color, -34)}
+            strokeWidth="6"
+          />
+          <circle cx="14" cy="22" fill="#facc15" r="5" />
+          <g transform="translate(0 70)">
+            <IsoBox color={shadeColor(color, -10)} d={40} h={12} w={112} />
+          </g>
         </>
       );
     case "eye":
       return (
         <>
-          <path d="M-76 0 C-38 -50 38 -50 76 0 C38 50 -38 50 -76 0 Z" fill="#fef3c7" stroke="#92400e" strokeWidth="8" />
-          <circle cx="0" cy="0" fill="#67e8f9" r="30" />
-          <circle cx="0" cy="0" fill="#0f172a" r="15" />
-          <path d="M0 39 L14 68 L-14 68 Z" fill="#22d3ee" stroke="#92400e" strokeWidth="5" />
+          {/* 石の縁取りに奥行きを持たせた目 */}
+          <path
+            d="M-74 4 C-36 -46 44 -46 80 4 C44 54 -36 54 -74 4 Z"
+            fill={shadeColor("#92400e", -20)}
+          />
+          <path
+            d="M-78 0 C-40 -50 40 -50 76 0 C40 50 -40 50 -78 0 Z"
+            fill="#fef3c7"
+            stroke="#92400e"
+            strokeWidth="6"
+          />
+          <circle cx="-2" cy="0" fill={color} r="29" />
+          <circle cx="-2" cy="0" fill="#0f172a" r="14" />
+          <circle cx="-12" cy="-9" fill="#ffffff" opacity="0.8" r="6" />
+          <path
+            d="M-2 38 L12 66 L-16 66 Z"
+            fill={shadeColor(color, -12)}
+            stroke="#92400e"
+            strokeWidth="4"
+          />
         </>
       );
     case "flame":
       return (
         <>
-          <ellipse cx="0" cy="58" fill="#0f172a" opacity="0.16" rx="50" ry="10" />
-          <rect fill="#7c5f3d" height="20" rx="8" width="80" x="-40" y="32" />
-          <path d="M-28 30 C-50 -24 -8 -26 -10 -76 C25 -42 48 -20 28 30 Z" fill="#f97316" />
-          <path d="M-10 28 C-22 -8 12 -22 8 -56 C36 -20 30 6 12 28 Z" fill="#fde047" />
+          <GroundShadow rx={40} />
+          <g transform="translate(0 58)">
+            <IsoCylinder color="#7c5f3d" h={20} r={30} />
+          </g>
+          <g transform="translate(0 38)">
+            <IsoCylinder color="#a16207" h={10} r={20} />
+          </g>
+          <g className="pyr-flicker">
+            <path
+              d="M-22 28 C-40 -20 -6 -22 -8 -64 C20 -36 38 -16 22 28 Z"
+              fill={color}
+            />
+            <path
+              d="M-8 26 C-18 -4 10 -16 6 -44 C28 -16 24 4 10 26 Z"
+              fill="#fde047"
+            />
+            <path
+              d="M-2 24 C-8 6 8 -2 6 -20 C16 -4 14 10 6 24 Z"
+              fill="#fffbeb"
+              opacity="0.9"
+            />
+          </g>
         </>
       );
     case "fountain":
       return (
         <>
-          <ellipse cx="0" cy="50" fill="#60a5fa" opacity="0.45" rx="74" ry="24" stroke="#64748b" strokeWidth="6" />
-          <path d="M-48 46 H48 L34 72 H-34 Z" fill="#d6d3d1" stroke="#64748b" strokeWidth="5" />
-          <path d="M0 30 C-26 0 -18 -34 0 -60 C18 -34 26 0 0 30 Z" fill="#7dd3fc" opacity="0.82" />
-          <path d="M-42 12 C-20 0 -10 -20 0 -48 C10 -20 20 0 42 12" fill="none" stroke="#38bdf8" strokeLinecap="round" strokeWidth="6" />
+          <GroundShadow cy={62} rx={66} />
+          <g transform="translate(0 58)">
+            <IsoCylinder color="#d6d3d1" h={18} r={64} />
+          </g>
+          <ellipse cx="0" cy="40" fill="#38bdf8" opacity="0.75" rx="54" ry="26" />
+          <ellipse cx="-14" cy="34" fill="#bae6fd" opacity="0.6" rx="20" ry="9" />
+          <g transform="translate(0 44)">
+            <IsoCylinder color="#a8a29e" h={36} r={10} />
+          </g>
+          <g className="pyr-water">
+            <path
+              d="M-40 16 C-22 -6 -10 -22 0 -46 C10 -22 22 -6 40 16"
+              fill="none"
+              stroke="#7dd3fc"
+              strokeLinecap="round"
+              strokeWidth="6"
+            />
+            <path
+              d="M-22 22 C-12 6 -6 -8 0 -28 C6 -8 12 6 22 22"
+              fill="none"
+              opacity="0.8"
+              stroke="#e0f2fe"
+              strokeLinecap="round"
+              strokeWidth="4"
+            />
+          </g>
         </>
       );
     case "gate":
       return (
         <>
-          <ellipse cx="0" cy="62" fill="#0f172a" opacity="0.16" rx="78" ry="12" />
-          <rect fill="#8b7355" height="108" rx="10" width="34" x="-70" y="-50" />
-          <rect fill="#8b7355" height="108" rx="10" width="34" x="36" y="-50" />
-          <rect fill="#d8c7a6" height="30" rx="8" width="146" x="-73" y="-70" />
-          <path d="M-35 58 V-22 C-35 -55 35 -55 35 -22 V58 Z" fill="#7c2d12" stroke="#422006" strokeWidth="6" />
-          <circle cx="-13" cy="8" fill="#facc15" r="6" />
-          <circle cx="13" cy="8" fill="#facc15" r="6" />
-          <path d="M0 -84 L18 -54 L0 -28 L-18 -54 Z" fill="#38bdf8" stroke="#92400e" strokeWidth="5" />
+          <GroundShadow rx={66} />
+          <g transform="translate(-52 58)">
+            <IsoBox color="#8b7355" d={26} h={100} w={28} />
+          </g>
+          <g transform="translate(52 58)">
+            <IsoBox color="#8b7355" d={26} h={100} w={28} />
+          </g>
+          <g transform="translate(0 -46)">
+            <IsoBox color={color} d={30} h={26} w={132} />
+          </g>
+          <path
+            d="M-28 54 V-16 C-28 -46 28 -46 28 -16 V54 Z"
+            fill="#2a1205"
+            opacity="0.9"
+          />
+          <circle cx="-10" cy="10" fill="#facc15" r="5" />
+          <circle cx="10" cy="10" fill="#facc15" r="5" />
+          <path
+            d="M0 -88 L15 -64 L0 -42 L-15 -64 Z"
+            fill="#38bdf8"
+            stroke={shadeColor(color, -24)}
+            strokeWidth="4"
+          />
         </>
       );
     case "glassPyramid":
       return (
         <>
-          <polygon fill="#bae6fd" opacity="0.72" points="0,-78 70,58 -70,58" stroke="#0e7490" strokeWidth="6" />
-          <path d="M0 -78 V58 M-44 -20 H44 M-62 30 H62 M0 -78 L-22 58 M0 -78 L22 58" stroke="#e0f2fe" strokeWidth="5" />
+          <GroundShadow cy={62} rx={60} />
+          <g opacity="0.78" transform="translate(0 58)">
+            <IsoPyramid base={104} color={color} h={128} />
+          </g>
+          <path
+            d="M0 -70 L-52 32 M0 -70 L52 32 M0 -70 L0 58 M-34 -4 L34 -4 M-46 22 L46 22"
+            opacity="0.85"
+            stroke="#e0f2fe"
+            strokeWidth="3.5"
+          />
+          <path
+            d="M0 -70 L-22 -22 L-8 -26 Z"
+            fill="#ffffff"
+            opacity="0.55"
+          />
         </>
       );
     case "lantern":
       return (
         <>
-          <path d="M0 -72 V66" stroke="#334155" strokeWidth="9" />
-          <rect fill="#f59e0b" height="56" rx="10" width="36" x="-18" y="-32" stroke="#334155" strokeWidth="5" />
-          <path d="M-28 -52 Q0 -78 28 -52" fill="none" stroke="#334155" strokeWidth="6" />
+          <GroundShadow rx={32} />
+          <g transform="translate(0 58)">
+            <IsoBox color="#334155" d={10} h={120} w={10} />
+          </g>
+          <path
+            d="M-24 -46 Q0 -70 24 -46"
+            fill="none"
+            stroke="#334155"
+            strokeWidth="6"
+          />
+          <g transform="translate(0 -8)">
+            <IsoBox color={color} d={24} h={44} w={32} />
+          </g>
+          <circle className="pyr-flicker" cx="2" cy="-28" fill="#fef9c3" opacity="0.85" r="11" />
         </>
       );
     case "monitor":
       return (
         <>
-          <ellipse cx="0" cy="60" fill="#0f172a" opacity="0.14" rx="70" ry="10" />
-          <rect fill="#0f172a" height="78" rx="10" width="130" x="-65" y="-50" />
-          <rect fill="#083344" height="58" rx="6" width="108" x="-54" y="-40" />
-          <path d="M-42 -12 L-18 -24 L2 -8 L28 -30 L45 -22" fill="none" stroke="#22d3ee" strokeWidth="6" />
-          <circle cx="38" cy="4" fill="#22d3ee" r="13" opacity="0.8" />
-          <path d="M0 28 V56 M-32 56 H32" stroke="#475569" strokeWidth="9" />
+          <GroundShadow rx={58} />
+          <g transform="translate(0 58)">
+            <IsoBox color="#475569" d={30} h={16} w={56} />
+          </g>
+          <g transform="translate(0 44)">
+            <IsoBox color="#334155" d={12} h={28} w={14} />
+          </g>
+          {/* 本体（少し斜めに置かれた薄型筐体） */}
+          <g transform="translate(0 18)">
+            <IsoBox color="#0f172a" d={14} h={84} w={120} />
+          </g>
+          <polygon
+            fill="#083344"
+            points="-55,-62 53,-54 53,4 -55,12"
+          />
+          <path
+            className="pyr-blink"
+            d="M-40 -16 L-20 -30 L-2 -16 L22 -40 L40 -30"
+            fill="none"
+            stroke="#22d3ee"
+            strokeLinecap="round"
+            strokeWidth="5"
+          />
+          <circle className="pyr-blink" cx="34" cy="-4" fill="#22d3ee" opacity="0.8" r="9" />
         </>
       );
     case "obelisk":
       return (
         <>
-          <polygon fill={color} points="0,-82 34,-42 28,58 -28,58 -34,-42" stroke="#6b4f2a" strokeWidth="5" />
-          <path d="M0 -62 V42 M-14 -24 H14 M-12 4 H12 M-16 30 H16" stroke="#fde68a" strokeWidth="5" />
-          <rect fill="#6b4f2a" height="16" rx="4" width="78" x="-39" y="58" />
+          <GroundShadow rx={42} />
+          <g transform="translate(0 58)">
+            <IsoBox color={shadeColor(color, -8)} d={42} h={14} w={56} />
+          </g>
+          {/* テーパー付き角柱: 左右2面 */}
+          <polygon
+            fill={shadeColor(color, 8)}
+            points="-22,46 0,56 0,-58 -12,-62"
+            stroke="none"
+          />
+          <polygon
+            fill={shadeColor(color, -24)}
+            points="0,56 24,46 13,-62 0,-58"
+          />
+          <polygon
+            fill={shadeColor(color, 24)}
+            points="-12,-62 0,-58 13,-62 0,-66"
+          />
+          <polygon fill="#fde68a" points="0,-66 14,-62 0,-88 -13,-62" />
+          <path
+            d="M-10 -34 H4 M-9 -10 H5 M-8 14 H6"
+            opacity="0.7"
+            stroke="#fde68a"
+            strokeWidth="4"
+          />
         </>
       );
     case "plant":
       return (
         <>
-          <ellipse cx="0" cy="58" fill="#0f172a" opacity="0.14" rx="70" ry="11" />
-          <rect fill="#8b5e34" height="26" rx="6" width="104" x="-52" y="28" />
-          <circle cx="-36" cy="10" fill="#22c55e" r="28" />
-          <circle cx="4" cy="-4" fill="#16a34a" r="34" />
-          <circle cx="36" cy="12" fill="#4ade80" r="25" />
-          {[-42, -10, 18, 42].map((cx, index) => (
-            <circle cx={cx} cy={index % 2 ? -20 : 0} fill={["#fb7185", "#facc15", "#a78bfa", "#f472b6"][index]} key={cx} r="8" />
+          <GroundShadow rx={56} />
+          <g transform="translate(0 58)">
+            <IsoBox color="#8b5e34" d={36} h={20} w={96} />
+          </g>
+          <ellipse cx="-30" cy="6" fill={shadeColor("#16a34a", -16)} rx="26" ry="24" />
+          <ellipse cx="28" cy="8" fill={shadeColor("#16a34a", -8)} rx="24" ry="22" />
+          <ellipse cx="0" cy="-12" fill="#16a34a" rx="32" ry="30" />
+          <ellipse cx="-12" cy="-24" fill={shadeColor("#16a34a", 22)} rx="18" ry="14" />
+          {[
+            [-38, -2, "#fb7185"],
+            [-8, 6, "#facc15"],
+            [20, -8, "#a78bfa"],
+            [38, 2, "#f472b6"]
+          ].map(([cx, cy, fill]) => (
+            <circle
+              cx={Number(cx)}
+              cy={Number(cy)}
+              fill={String(fill)}
+              key={`${cx}-${cy}`}
+              r="7"
+            />
           ))}
         </>
       );
     case "pyramidBlock":
       return (
         <>
-          <ellipse cx="0" cy="68" fill="#0f172a" opacity="0.14" rx="76" ry="12" />
-          <polygon fill={color} points="0,-78 76,58 -76,58" stroke="#6b5b45" strokeWidth="6" />
-          <path d="M-50 12 H50 M-34 -18 H34 M-18 -46 H18 M0 -78 V58 M-38 58 L-10 -78 M38 58 L10 -78" stroke="#f8fafc" strokeOpacity="0.55" strokeWidth="5" />
+          <GroundShadow cy={62} rx={62} />
+          <g transform="translate(0 58)">
+            <IsoPyramid base={110} color={color} h={132} />
+          </g>
+          {/* 石積みライン（左右面で濃さを変える） */}
+          <path
+            d="M-40 30 L0 38 M-28 2 L0 8 M-16 -26 L0 -22"
+            opacity="0.4"
+            stroke="#ffffff"
+            strokeWidth="4"
+          />
+          <path
+            d="M0 38 L42 30 M0 8 L30 2 M0 -22 L17 -26"
+            opacity="0.3"
+            stroke="#0f172a"
+            strokeWidth="4"
+          />
         </>
       );
     case "scaffold":
       return (
         <>
-          <path d="M-68 62 V-62 M0 62 V-62 M68 62 V-62 M-82 38 H82 M-82 0 H82 M-82 -38 H82 M-68 62 L68 -62 M68 62 L-68 -62" fill="none" stroke="#92400e" strokeLinecap="round" strokeWidth="7" />
-          <circle cx="-68" cy="-62" fill="#facc15" r="8" />
-          <circle cx="68" cy="-62" fill="#facc15" r="8" />
+          <GroundShadow rx={62} />
+          {/* 奥の柱 */}
+          <g opacity="0.75" transform="translate(-44 44)">
+            <IsoBox color="#a16207" d={9} h={110} w={9} />
+          </g>
+          <g opacity="0.75" transform="translate(52 44)">
+            <IsoBox color="#a16207" d={9} h={110} w={9} />
+          </g>
+          {/* 手前の柱 */}
+          <g transform="translate(-60 60)">
+            <IsoBox color="#92400e" d={10} h={116} w={10} />
+          </g>
+          <g transform="translate(36 60)">
+            <IsoBox color="#92400e" d={10} h={116} w={10} />
+          </g>
+          {/* 足場板 */}
+          <g transform="translate(-12 -2)">
+            <IsoBox color="#d6a35c" d={26} h={8} w={108} />
+          </g>
+          <g transform="translate(-12 40)">
+            <IsoBox color="#d6a35c" d={26} h={8} w={108} />
+          </g>
+          <path
+            d="M-60 -10 L36 34 M36 -10 L-60 34"
+            opacity="0.85"
+            stroke="#92400e"
+            strokeLinecap="round"
+            strokeWidth="6"
+          />
+          <circle cx="-60" cy="-58" fill="#facc15" r="7" />
+          <circle cx="36" cy="-58" fill="#facc15" r="7" />
         </>
       );
     case "sign":
       return (
         <>
-          <rect fill={color} height="70" rx="10" width="128" x="-64" y="-48" stroke="#78350f" strokeWidth="6" />
-          <rect fill="#475569" height="55" width="12" x="-6" y="22" />
-          <path d="M-36 -12 H36 M-26 12 H26" stroke="#fff" strokeLinecap="round" strokeWidth="8" />
+          <GroundShadow rx={48} />
+          <g transform="translate(4 58)">
+            <IsoBox color="#475569" d={10} h={70} w={12} />
+          </g>
+          {/* 看板パネル（厚みつき） */}
+          <polygon
+            fill={shadeColor(color, -26)}
+            points="58,-46 64,-42 64,18 58,22"
+          />
+          <polygon
+            fill={shadeColor(color, 6)}
+            points="-58,-50 58,-46 58,22 -58,26"
+          />
+          <path
+            d="M-34 -22 L34 -19 M-26 0 L26 2"
+            stroke="#ffffff"
+            strokeLinecap="round"
+            strokeWidth="7"
+          />
+          <path
+            d="M-58 -50 L-44 -50 L-58 -36 Z M-20 -49 L0 -48 L-34 -32 L-50 -33 Z M18 -47 L38 -46 L4 -30 L-12 -31 Z M52 -46 L58 -45 L58 -32 L36 -30 Z"
+            fill="#0f172a"
+            opacity="0.6"
+          />
         </>
       );
     case "sphinx":
       return (
         <>
-          <ellipse cx="0" cy="60" fill="#0f172a" opacity="0.14" rx="82" ry="12" />
-          <rect fill={color} height="44" rx="20" width="120" x="-60" y="0" />
-          <circle cx="-18" cy="-26" fill={color} r="30" stroke="#6b5b45" strokeWidth="5" />
-          <path d="M-44 -28 H8 M-34 -44 L-52 -68 M-4 -44 L14 -68" stroke="#6b5b45" strokeLinecap="round" strokeWidth="6" />
-          <rect fill="#6b5b45" height="12" rx="6" width="96" x="-44" y="40" />
+          <GroundShadow rx={66} />
+          {/* 台座 */}
+          <g transform="translate(0 60)">
+            <IsoBox color={shadeColor(color, -18)} d={44} h={12} w={124} />
+          </g>
+          {/* 胴体 */}
+          <g transform="translate(8 48)">
+            <IsoBox color={color} d={40} h={36} w={104} />
+          </g>
+          {/* 前脚 */}
+          <g transform="translate(-34 56)">
+            <IsoBox color={shadeColor(color, 6)} d={14} h={24} w={48} />
+          </g>
+          {/* 頭部 */}
+          <circle
+            cx="-26"
+            cy="-22"
+            fill={shadeColor(color, 10)}
+            r="26"
+          />
+          <path
+            d="M-26 -48 L-54 -34 L-50 -6 L-26 4 Z"
+            fill={shadeColor(color, -12)}
+          />
+          <path
+            d="M-26 -48 L2 -34 L-2 -6 L-26 4 Z"
+            fill={shadeColor(color, -26)}
+          />
+          <circle cx="-26" cy="-22" fill={shadeColor(color, 14)} r="17" />
+          <path d="M-34 -24 H-18 M-31 -16 H-21" stroke="#3f3424" strokeLinecap="round" strokeWidth="3.5" />
         </>
       );
     case "stairs":
       return (
-        <path
-          d="M-70 58 H70 V34 H42 V12 H16 V-10 H-12 V-32 H-70 Z"
-          fill={color}
-          stroke="#6b5b45"
-          strokeWidth="5"
-        />
+        <>
+          <GroundShadow rx={60} />
+          <g transform="translate(40 58)">
+            <IsoBox color={color} d={56} h={22} w={36} />
+          </g>
+          <g transform="translate(12 52)">
+            <IsoBox color={shadeColor(color, 4)} d={56} h={42} w={32} />
+          </g>
+          <g transform="translate(-16 46)">
+            <IsoBox color={shadeColor(color, 8)} d={56} h={62} w={32} />
+          </g>
+          <g transform="translate(-46 40)">
+            <IsoBox color={shadeColor(color, 12)} d={56} h={82} w={30} />
+          </g>
+        </>
       );
     case "statue":
       return (
         <>
-          <ellipse cx="0" cy="62" fill="#0f172a" opacity="0.14" rx="56" ry="10" />
-          <circle cx="0" cy="-44" fill={color} r="24" stroke="#334155" strokeWidth="5" />
-          <path d="M-26 -18 H26 L38 42 H-38 Z" fill={color} stroke="#334155" strokeWidth="5" />
-          <path d="M-18 -44 H18 M-10 -34 H10" stroke="#f8fafc" strokeWidth="4" />
-          <rect fill="#475569" height="18" rx="5" width="82" x="-41" y="42" />
+          <GroundShadow rx={46} />
+          <g transform="translate(0 58)">
+            <IsoBox color="#475569" d={36} h={16} w={72} />
+          </g>
+          {/* 胴体（テーパー付き） */}
+          <polygon
+            fill={shadeColor(color, 4)}
+            points="-24,-12 0,-6 0,44 -32,38"
+          />
+          <polygon
+            fill={shadeColor(color, -22)}
+            points="0,-6 24,-12 32,38 0,44"
+          />
+          <polygon
+            fill={shadeColor(color, 20)}
+            points="-24,-12 0,-18 24,-12 0,-6"
+          />
+          {/* 頭部 */}
+          <circle cx="0" cy="-36" fill={shadeColor(color, 8)} r="21" />
+          <path
+            d="M-21 -38 A21 21 0 0 1 0 -57 L0 -36 Z"
+            fill={shadeColor(color, 26)}
+            opacity="0.7"
+          />
+          <path d="M-12 -38 H12 M-7 -30 H7" stroke="#f8fafc" strokeLinecap="round" strokeWidth="3.5" />
+          {/* 耳（猫にも兵士の兜にも見えるシルエット） */}
+          <path d="M-16 -52 L-12 -64 L-5 -54 Z M16 -52 L12 -64 L5 -54 Z" fill={shadeColor(color, -10)} />
         </>
       );
     case "triangle":
-      return <polygon fill={color} points="0,-70 68,58 -68,58" stroke="#334155" strokeWidth="5" />;
+      return (
+        <>
+          <GroundShadow cy={62} rx={56} />
+          <g transform="translate(0 58)">
+            <IsoPyramid base={96} color={color} h={118} />
+          </g>
+        </>
+      );
     case "platform":
-      return <ellipse cx="0" cy="18" fill={color} rx="76" ry="32" />;
+      return (
+        <g transform="translate(0 34)">
+          <IsoCylinder color={color} h={16} r={70} />
+        </g>
+      );
     case "rect":
     default:
       return (
         <>
-          <ellipse cx="0" cy="58" fill="#0f172a" opacity="0.12" rx="70" ry="10" />
-          <rect fill={color} height="96" rx="14" width="118" x="-59" y="-48" stroke="#334155" strokeWidth="5" />
-          <rect fill="#22d3ee" height="16" rx="4" width="20" x="24" y="-26" opacity="0.85" />
-          <path d="M-38 -18 H6 M-38 8 H38 M-38 34 H20" stroke="#f8fafc" strokeLinecap="round" strokeOpacity="0.6" strokeWidth="5" />
+          <GroundShadow rx={54} />
+          <g transform="translate(0 58)">
+            <IsoBox color={color} d={42} h={104} w={84} />
+          </g>
+          {/* 正面パネル */}
+          <polygon
+            fill="#0f172a"
+            opacity="0.25"
+            points="-60,-40 20,-32 20,40 -60,48"
+          />
+          <polygon
+            className="pyr-blink"
+            fill="#22d3ee"
+            opacity="0.85"
+            points="2,-26 18,-24 18,-8 2,-10"
+          />
+          <path
+            d="M-50 -16 L-8 -12 M-50 4 L-8 8 M-50 24 L-26 26"
+            opacity="0.65"
+            stroke="#f8fafc"
+            strokeLinecap="round"
+            strokeWidth="5"
+          />
         </>
       );
   }

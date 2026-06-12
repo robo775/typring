@@ -2,6 +2,19 @@ import Link from "next/link";
 import { PyramidPreview } from "@/components/pyramid/pyramid-preview";
 import { sanitizePlacedParts } from "@/lib/pyramid/sanitize-pyramid";
 import type { PyramidCreationRow } from "@/lib/pyramid/queries";
+import type { PyramidMode } from "@/types/pyramid";
+
+export function PyramidModeBadge({ mode }: { mode: PyramidMode }) {
+  return mode === "challenge" ? (
+    <span className="shrink-0 rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-black text-ringViolet">
+      チャレンジ
+    </span>
+  ) : (
+    <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-500">
+      自由作成
+    </span>
+  );
+}
 
 export function PyramidListHeader({
   description,
@@ -68,15 +81,24 @@ export function PyramidCreationGrid({
               title={creation.title}
             />
             <div className="p-4">
-              <h2 className="truncate text-base font-black text-ink">
-                {creation.title}
-              </h2>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="truncate text-base font-black text-ink">
+                  {creation.title}
+                </h2>
+                <PyramidModeBadge mode={creation.mode} />
+              </div>
               <p className="mt-1 truncate text-xs text-slate-500">
                 by {creator?.display_name ?? "Typring user"}
               </p>
-              <p className="mt-3 text-sm font-black text-ringViolet">
-                Score {creation.total_score}
-              </p>
+              {creation.mode === "challenge" ? (
+                <p className="mt-3 text-sm font-black text-ringViolet">
+                  Score {creation.total_score}
+                </p>
+              ) : (
+                <p className="mt-3 text-sm font-bold text-slate-400">
+                  ギャラリー作品
+                </p>
+              )}
             </div>
           </Link>
         );

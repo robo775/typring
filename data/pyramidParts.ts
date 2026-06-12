@@ -13,6 +13,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "material",
     color: "#d8c7a6",
+    cost: 10,
     defaultScale: 1.08,
     description: "王道の石積みピラミッド。",
     id: "stone-pyramid",
@@ -23,6 +24,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "material",
     color: "#1f2937",
+    cost: 12,
     defaultScale: 1.04,
     description: "重厚で威圧感のある黒石。",
     id: "black-pyramid",
@@ -33,6 +35,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "material",
     color: "#93c5fd",
+    cost: 14,
     defaultScale: 1.04,
     description: "光を通す透明な素材。",
     id: "glass-pyramid",
@@ -43,6 +46,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "material",
     color: "#8f9f6a",
+    cost: 11,
     defaultScale: 1.04,
     description: "遺跡感が出る苔むした石材。",
     id: "moss-pyramid",
@@ -53,6 +57,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "entrance",
     color: "#8b5e34",
+    cost: 6,
     defaultScale: 1,
     description: "普通だけど安心する入口。",
     id: "normal-door",
@@ -63,6 +68,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "entrance",
     color: "#b45309",
+    cost: 15,
     defaultScale: 1.05,
     description: "正面に置くと急に本格派。",
     id: "royal-gate",
@@ -73,6 +79,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "entrance",
     color: "#d6b98c",
+    cost: 9,
     defaultScale: 1,
     description: "中でくつろげそうな丸い入口。",
     id: "round-arch",
@@ -83,6 +90,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "decoration",
     color: "#c084fc",
+    cost: 10,
     defaultScale: 0.9,
     description: "神秘性がだいぶ増えます。",
     id: "ancient-obelisk",
@@ -93,6 +101,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "decoration",
     color: "#38bdf8",
+    cost: 12,
     defaultScale: 0.78,
     description: "見守っているのか見張っているのか。",
     id: "giant-eye",
@@ -103,6 +112,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "decoration",
     color: "#c2a36b",
+    cost: 13,
     defaultScale: 0.95,
     description: "置くだけで古代感。",
     id: "sphinx",
@@ -113,6 +123,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "decoration",
     color: "#fb7185",
+    cost: 7,
     defaultScale: 0.78,
     description: "やさしい雰囲気になります。",
     id: "flower-box",
@@ -123,6 +134,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "decoration",
     color: "#dc2626",
+    cost: 9,
     defaultScale: 0.86,
     description: "祝祭感を足す旗。",
     id: "red-banner",
@@ -133,6 +145,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "decoration",
     color: "#f59e0b",
+    cost: 10,
     defaultScale: 0.84,
     description: "夜のピラミッドに似合います。",
     id: "torch",
@@ -143,6 +156,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "facility",
     color: "#a16207",
+    cost: 8,
     defaultScale: 0.92,
     description: "休めるピラミッドは強い。",
     id: "sofa",
@@ -153,6 +167,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "facility",
     color: "#0891b2",
+    cost: 14,
     defaultScale: 0.86,
     description: "目的最適化の気配。",
     id: "roi-monitor",
@@ -163,6 +178,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "facility",
     color: "#64748b",
+    cost: 11,
     defaultScale: 0.78,
     description: "セキュリティ意識が高い。",
     id: "security-camera",
@@ -173,6 +189,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "facility",
     color: "#475569",
+    cost: 9,
     defaultScale: 0.9,
     description: "なぜか急に施設っぽい。",
     id: "vending-machine",
@@ -183,6 +200,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "environment",
     color: "#16a34a",
+    cost: 8,
     defaultScale: 0.96,
     description: "自然と調和したい時に。",
     id: "tree",
@@ -193,6 +211,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "environment",
     color: "#60a5fa",
+    cost: 11,
     defaultScale: 0.88,
     description: "公園ピラミッドにできます。",
     id: "fountain",
@@ -203,6 +222,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "environment",
     color: "#94a3b8",
+    cost: 5,
     defaultScale: 1.08,
     description: "何も見えなくなるのも味です。",
     id: "fog",
@@ -213,6 +233,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "environment",
     color: "#a16207",
+    cost: 7,
     defaultScale: 1,
     description: "建設途中感が出ます。",
     id: "scaffold",
@@ -223,6 +244,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "environment",
     color: "#475569",
+    cost: 9,
     defaultScale: 0.78,
     description: "守りが固く見えます。",
     id: "soldier",
@@ -233,6 +255,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "joke",
     color: "#ec4899",
+    cost: 16,
     defaultScale: 1.08,
     description: "もはや公民館。",
     id: "festival-arch",
@@ -243,6 +266,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "joke",
     color: "#7c3aed",
+    cost: 11,
     defaultScale: 1,
     description: "勝った気になります。",
     id: "balloons",
@@ -253,6 +277,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "joke",
     color: "#f97316",
+    cost: 18,
     defaultScale: 0.9,
     description: "そこにいるだけで満足度が上がる。",
     id: "cat",
@@ -263,6 +288,7 @@ export const pyramidParts: PyramidPart[] = [
   {
     category: "joke",
     color: "#facc15",
+    cost: 6,
     defaultScale: 0.9,
     description: "工事現場にもできます。",
     id: "warning-sign",

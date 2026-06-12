@@ -33,15 +33,27 @@ export type PyramidPartVisual =
   | "statue"
   | "triangle";
 
+export type PyramidMode = "free" | "challenge";
+
 export type PyramidPart = {
   category: PyramidPartCategory;
   color: string;
+  cost: number;
   defaultScale: number;
   description?: string;
   id: string;
   name: string;
   score: number;
   visual: PyramidPartVisual;
+};
+
+export type PyramidSynergy = {
+  backgroundId?: string;
+  bonus: number;
+  description: string;
+  id: string;
+  name: string;
+  requires: { count?: number; partId: string }[];
 };
 
 export type PlacedPyramidPart = {
@@ -56,23 +68,33 @@ export type PlacedPyramidPart = {
 };
 
 export type PyramidBackground = {
-  accent: string;
-  ground: string;
+  groundSide: string;
+  groundTop: string;
   horizon: string;
   id: string;
+  isNight: boolean;
   name: string;
-  sky: string;
+  skyBottom: string;
+  skyTop: string;
+  sunColor: string;
 };
 
 export type PyramidSaveData = {
   backgroundId: string;
+  mode: PyramidMode;
   placedParts: PlacedPyramidPart[];
   updatedAt: string;
-  version: 1;
+  version: 2;
 };
 
 export type PyramidScore = {
+  achievedSynergyIds: string[];
+  baseScore: number;
   categoryCount: number;
+  costUsed: number;
   partCount: number;
+  synergyBonus: number;
   totalScore: number;
+  varietyBonus: number;
+  volumeBonus: number;
 };

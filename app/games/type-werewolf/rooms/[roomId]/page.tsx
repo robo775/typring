@@ -16,6 +16,7 @@ import {
   TYPE_WEREWOLF_CHARACTERS,
   type TypeWerewolfCharacterCode
 } from "@/data/typeWerewolfCharacters";
+import { DeleteTypeWerewolfRoomButton } from "@/components/type-werewolf/delete-room-button";
 import {
   finishTypeWerewolfRoom,
   guessTypeWerewolfPlayer,
@@ -220,10 +221,13 @@ export default async function TypeWerewolfRoomPage({
               </a>
             ) : null}
             {isHost ? (
-              <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-2 text-sm font-bold text-amber-700">
-                <Crown className="h-4 w-4" />
-                ホスト
-              </span>
+              <>
+                <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-2 text-sm font-bold text-amber-700">
+                  <Crown className="h-4 w-4" />
+                  ホスト
+                </span>
+                <DeleteTypeWerewolfRoomButton roomId={room.id} />
+              </>
             ) : null}
           </div>
         </div>
@@ -840,9 +844,12 @@ function getStatusLabel(status: RoomRow["status"]) {
 
 function getErrorMessage(error: string) {
   const messages: Record<string, string> = {
+    already_in_room:
+      "すでに参加中、または作成済みのルームがあります。先に退出または削除してください。",
     character_required: "キャラクターを選択してください。",
     character_taken:
       "このキャラクターは、ほかの参加者が選択しました。別のキャラクターを選んでください。",
+    delete_not_allowed: "このルームは削除できません。",
     guess_not_allowed: "推理できません。",
     guess_required: "推理対象と類型を選んでください。",
     message_not_allowed: "発言できません。",

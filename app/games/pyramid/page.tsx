@@ -1,7 +1,21 @@
 import Link from "next/link";
 import { PyramidGame } from "@/components/pyramid/pyramid-game";
+import { PyramidModeSelect } from "@/components/pyramid/pyramid-mode-select";
+import type { PyramidMode } from "@/types/pyramid";
 
-export default function PyramidGamePage() {
+export default function PyramidGamePage({
+  searchParams
+}: {
+  searchParams?: { mode?: string };
+}) {
+  const modeParam = searchParams?.mode;
+  const mode: PyramidMode | null =
+    modeParam === "free" || modeParam === "challenge" ? modeParam : null;
+
+  if (!mode) {
+    return <PyramidModeSelect />;
+  }
+
   return (
     <>
       <div className="mx-auto flex max-w-6xl flex-col gap-3 px-3 pt-4 sm:px-4">
@@ -31,7 +45,7 @@ export default function PyramidGamePage() {
           </a>
         </p>
       </div>
-      <PyramidGame />
+      <PyramidGame mode={mode} />
     </>
   );
 }

@@ -3,54 +3,56 @@
 import Link from "next/link";
 import {
   ArrowLeft,
-  ArrowDownToLine,
-  ArrowUpToLine,
   Download,
-  FlipHorizontal,
   HelpCircle,
-  RotateCcw,
-  RotateCw,
+  Redo2,
   Share2,
-  Trash2,
   Undo2,
   X
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ChallengeHud } from "@/components/pyramid/challenge-hud";
+import { FloatingPartToolbar } from "@/components/pyramid/floating-part-toolbar";
+import { PartPaletteSheet } from "@/components/pyramid/part-palette-sheet";
 import { PyramidPartShape } from "@/components/pyramid/pyramid-part-shape";
+import { PyramidScene } from "@/components/pyramid/pyramid-scene";
 import { pyramidBackgrounds } from "@/data/pyramidBackgrounds";
 import { pyramidCategoryLabels, pyramidParts } from "@/data/pyramidParts";
-import { calculatePyramidScore } from "@/lib/pyramid/calculate-pyramid-score";
+import {
+  calculateChallengeScore,
+  calculatePyramidScore
+} from "@/lib/pyramid/calculate-pyramid-score";
+import {
+  CHALLENGE_COST_BUDGET,
+  CHALLENGE_MAX_PARTS,
+  canAddPart
+} from "@/lib/pyramid/challenge-rules";
 import { downloadSvgAsPng } from "@/lib/pyramid/export-pyramid-image";
 import {
   clearPyramidSave,
   loadPyramidSave,
   savePyramidState
 } from "@/lib/pyramid/pyramid-storage";
+import { usePyramidGestures } from "@/lib/pyramid/use-pyramid-gestures";
 import type {
   PlacedPyramidPart,
-  PyramidBackground,
+  PyramidMode,
   PyramidPart,
-  PyramidPartCategory
+  PyramidPartCategory,
+  PyramidScore
 } from "@/types/pyramid";
 
 const categories = Object.keys(pyramidCategoryLabels) as PyramidPartCategory[];
-const viewBoxSize = 1000;
 
-type DragState = {
-  instanceId: string;
-  offsetX: number;
-  offsetY: number;
-};
-
-export function PyramidGame() {
+export function PyramidGame({ mode = "free" }: { mode?: PyramidMode }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [backgroundId, setBackgroundId] = useState("desert");
   const [placedParts, setPlacedParts] = useState<PlacedPyramidPart[]>([]);
   const [history, setHistory] = useState<PlacedPyramidPart[][]>([]);
+  const [redoStack, setRedoStack] = useState<PlacedPyramidPart[][]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] =
     useState<PyramidPartCategory>("material");
-  const [dragState, setDragState] = useState<DragState | null>(null);
   const [isHowToOpen, setIsHowToOpen] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [publishTitle, setPublishTitle] = useState("わたしのピラミッド");
@@ -62,8 +64,11 @@ export function PyramidGame() {
     pyramidBackgrounds.find((item) => item.id === backgroundId) ??
     pyramidBackgrounds[0];
   const score = useMemo(
-    () => calculatePyramidScore(placedParts),
-    [placedParts]
+    () =>
+      mode === "challenge"
+        ? calculateChallengeScore(placedParts, backgroundId)
+        : calculatePyramidScore(placedParts),
+    [mode, placedParts, backgroundId]
   );
   const selectedPart = placedParts.find((part) => part.instanceId === selectedId);
   const visibleParts = pyramidParts.filter(
@@ -71,7 +76,7 @@ export function PyramidGame() {
   );
 
   useEffect(() => {
-    const saveData = loadPyramidSave();
+    const saveData = loadPyramidSave(mode);
 
     if (!saveData) {
       return;
@@ -79,18 +84,23 @@ export function PyramidGame() {
 
     setBackgroundId(saveData.backgroundId);
     setPlacedParts(saveData.placedParts);
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
-    savePyramidState(backgroundId, placedParts);
-  }, [backgroundId, placedParts]);
+    savePyramidState(mode, backgroundId, placedParts);
+  }, [mode, backgroundId, placedParts]);
 
   function commit(nextParts: PlacedPyramidPart[]) {
     setHistory((current) => [...current.slice(-20), placedParts]);
+    setRedoStack([]);
     setPlacedParts(nextParts);
   }
 
   function addPart(part: PyramidPart) {
+    if (mode === "challenge" && !canAddPart(placedParts, part).ok) {
+      return;
+    }
+
     const nextPart: PlacedPyramidPart = {
       flipX: false,
       instanceId: `${part.id}-${crypto.randomUUID()}`,
@@ -130,6 +140,37 @@ export function PyramidGame() {
     setIsComplete(false);
   }
 
+  function duplicateSelected() {
+    const source = placedParts.find((part) => part.instanceId === selectedId);
+
+    if (!source) {
+      return;
+    }
+
+    const partDefinition = pyramidParts.find(
+      (item) => item.id === source.partId
+    );
+
+    if (
+      mode === "challenge" &&
+      (!partDefinition || !canAddPart(placedParts, partDefinition).ok)
+    ) {
+      return;
+    }
+
+    const copied: PlacedPyramidPart = {
+      ...source,
+      instanceId: `${source.partId}-${crypto.randomUUID()}`,
+      x: clamp(source.x + 24, 40, 960),
+      y: clamp(source.y + 24, 40, 940),
+      zIndex: getNextZIndex(placedParts)
+    };
+
+    commit([...placedParts, copied]);
+    setSelectedId(copied.instanceId);
+    setIsComplete(false);
+  }
+
   function undo() {
     const previous = history[history.length - 1];
 
@@ -137,8 +178,23 @@ export function PyramidGame() {
       return;
     }
 
+    setRedoStack((current) => [...current.slice(-20), placedParts]);
     setPlacedParts(previous);
     setHistory((current) => current.slice(0, -1));
+    setSelectedId(null);
+    setIsComplete(false);
+  }
+
+  function redo() {
+    const next = redoStack[redoStack.length - 1];
+
+    if (!next) {
+      return;
+    }
+
+    setHistory((current) => [...current.slice(-20), placedParts]);
+    setPlacedParts(next);
+    setRedoStack((current) => current.slice(0, -1));
     setSelectedId(null);
     setIsComplete(false);
   }
@@ -148,77 +204,24 @@ export function PyramidGame() {
       return;
     }
 
-    clearPyramidSave();
+    clearPyramidSave(mode);
     setHistory((current) => [...current.slice(-20), placedParts]);
+    setRedoStack([]);
     setPlacedParts([]);
     setSelectedId(null);
     setIsComplete(false);
   }
 
-  function handlePointerDown(
-    event: React.PointerEvent<SVGGElement>,
-    placedPart: PlacedPyramidPart
-  ) {
-    const point = getSvgPoint(event);
-
-    if (!point) {
-      return;
-    }
-
-    event.currentTarget.setPointerCapture(event.pointerId);
-    setSelectedId(placedPart.instanceId);
-    setDragState({
-      instanceId: placedPart.instanceId,
-      offsetX: point.x - placedPart.x,
-      offsetY: point.y - placedPart.y
-    });
-  }
-
-  function handlePointerMove(event: React.PointerEvent<SVGSVGElement>) {
-    if (!dragState) {
-      return;
-    }
-
-    const point = getSvgPoint(event);
-
-    if (!point) {
-      return;
-    }
-
-    setPlacedParts((current) =>
-      current.map((part) =>
-        part.instanceId === dragState.instanceId
-          ? {
-              ...part,
-              x: clamp(point.x - dragState.offsetX, 40, 960),
-              y: clamp(point.y - dragState.offsetY, 40, 940)
-            }
-          : part
-      )
-    );
-  }
-
-  function handlePointerUp() {
-    if (dragState) {
-      setHistory((current) => [...current.slice(-20), placedParts]);
-    }
-
-    setDragState(null);
-  }
-
-  function getSvgPoint(event: React.PointerEvent<SVGElement>) {
-    const svg = svgRef.current;
-
-    if (!svg) {
-      return null;
-    }
-
-    const rect = svg.getBoundingClientRect();
-    return {
-      x: ((event.clientX - rect.left) / rect.width) * viewBoxSize,
-      y: ((event.clientY - rect.top) / rect.height) * viewBoxSize
-    };
-  }
+  const gestures = usePyramidGestures({
+    onGestureEnd: (snapshot) => {
+      setHistory((current) => [...current.slice(-20), snapshot]);
+      setRedoStack([]);
+      setIsComplete(false);
+    },
+    onSelect: setSelectedId,
+    setPlacedParts,
+    svgRef
+  });
 
   async function downloadImage() {
     if (!svgRef.current) {
@@ -231,7 +234,9 @@ export function PyramidGame() {
   function shareToX() {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin;
     const text = [
-      "オリジナルのピラミッドを作りました。",
+      mode === "challenge"
+        ? "チャレンジモードでピラミッドを建築しました。"
+        : "オリジナルのピラミッドを作りました。",
       `建築スコア: ${score.totalScore}`,
       "",
       "#Typring",
@@ -259,6 +264,7 @@ export function PyramidGame() {
         body: JSON.stringify({
           backgroundId,
           isPublic: true,
+          mode,
           placedParts,
           title: publishTitle
         }),
@@ -290,15 +296,26 @@ export function PyramidGame() {
   }
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4 px-3 py-4 sm:px-4 sm:py-8">
+    <div className="mx-auto flex max-w-6xl flex-col gap-4 px-3 py-4 pb-44 sm:px-4 sm:py-8 sm:pb-44 lg:pb-8">
       <div className="flex items-center justify-between gap-3">
-        <Link
-          className="inline-flex items-center gap-2 rounded-full border border-white bg-white/80 px-3 py-2 text-sm font-bold text-ink shadow-sm"
-          href="/games"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          戻る
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            className="inline-flex items-center gap-2 rounded-full border border-white bg-white/80 px-3 py-2 text-sm font-bold text-ink shadow-sm"
+            href="/games/pyramid"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            モード選択
+          </Link>
+          <span
+            className={`rounded-full px-3 py-1.5 text-xs font-black ${
+              mode === "challenge"
+                ? "bg-violet-100 text-ringViolet"
+                : "bg-slate-100 text-slate-500"
+            }`}
+          >
+            {mode === "challenge" ? "チャレンジ" : "自由編集"}
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           <button
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white bg-white/82 text-ink shadow-sm"
@@ -335,11 +352,15 @@ export function PyramidGame() {
             />
           </div>
 
-          <div className="overflow-hidden rounded-3xl border border-white bg-white shadow-soft">
+          <div className="relative overflow-hidden rounded-3xl border border-white bg-white shadow-soft">
             <svg
               className="block aspect-square w-full touch-none bg-slate-100"
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
+              onPointerCancel={gestures.handlePointerUp}
+              onPointerDown={(event) =>
+                gestures.handleCanvasPointerDown(event, placedParts)
+              }
+              onPointerMove={gestures.handlePointerMove}
+              onPointerUp={gestures.handlePointerUp}
               ref={svgRef}
               role="img"
               viewBox="0 0 1000 1000"
@@ -347,14 +368,68 @@ export function PyramidGame() {
             >
               <PyramidScene
                 background={background}
-                handlePointerDown={handlePointerDown}
+                handlePointerDown={(event, placedPart) =>
+                  gestures.handlePartPointerDown(event, placedPart, placedParts)
+                }
+                idPrefix="editor"
                 placedParts={placedParts}
                 selectedId={selectedId}
               />
             </svg>
+            {selectedPart ? (
+              <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center px-2">
+                <FloatingPartToolbar
+                  onBack={() =>
+                    updateSelected((part) => ({
+                      ...part,
+                      zIndex: Math.max(0, part.zIndex - 1)
+                    }))
+                  }
+                  onDelete={removeSelected}
+                  onDuplicate={duplicateSelected}
+                  onFlip={() =>
+                    updateSelected((part) => ({ ...part, flipX: !part.flipX }))
+                  }
+                  onForward={() =>
+                    updateSelected((part) => ({
+                      ...part,
+                      zIndex: getNextZIndex(placedParts)
+                    }))
+                  }
+                  onRotateLeft={() =>
+                    updateSelected((part) => ({
+                      ...part,
+                      rotation: part.rotation - 15
+                    }))
+                  }
+                  onRotateRight={() =>
+                    updateSelected((part) => ({
+                      ...part,
+                      rotation: part.rotation + 15
+                    }))
+                  }
+                  onScaleDown={() =>
+                    updateSelected((part) => ({
+                      ...part,
+                      scale: Math.max(0.45, Number((part.scale - 0.1).toFixed(2)))
+                    }))
+                  }
+                  onScaleUp={() =>
+                    updateSelected((part) => ({
+                      ...part,
+                      scale: Math.min(2.4, Number((part.scale + 0.1).toFixed(2)))
+                    }))
+                  }
+                  partName={
+                    pyramidParts.find((item) => item.id === selectedPart.partId)
+                      ?.name ?? "パーツ"
+                  }
+                />
+              </div>
+            ) : null}
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             <button
               className="inline-flex items-center justify-center gap-1 rounded-2xl border border-white bg-white/82 px-2 py-3 text-xs font-bold text-ink shadow-sm disabled:opacity-40"
               disabled={history.length === 0}
@@ -363,6 +438,15 @@ export function PyramidGame() {
             >
               <Undo2 className="h-4 w-4" />
               Undo
+            </button>
+            <button
+              className="inline-flex items-center justify-center gap-1 rounded-2xl border border-white bg-white/82 px-2 py-3 text-xs font-bold text-ink shadow-sm disabled:opacity-40"
+              disabled={redoStack.length === 0}
+              onClick={redo}
+              type="button"
+            >
+              <Redo2 className="h-4 w-4" />
+              Redo
             </button>
             <button
               className="inline-flex items-center justify-center gap-1 rounded-2xl border border-white bg-white/82 px-2 py-3 text-xs font-bold text-ink shadow-sm"
@@ -391,6 +475,7 @@ export function PyramidGame() {
         </section>
 
         <aside className="space-y-3">
+          {mode === "challenge" ? <ChallengeHud score={score} /> : null}
           <BackgroundSelector
             backgroundId={backgroundId}
             setBackgroundId={(id) => {
@@ -398,66 +483,35 @@ export function PyramidGame() {
               setIsComplete(false);
             }}
           />
-          <SelectedPartControls
-            hasSelection={Boolean(selectedPart)}
-            onBack={() =>
-              updateSelected((part) => ({
-                ...part,
-                zIndex: Math.max(0, part.zIndex - 1)
-              }))
-            }
-            onDelete={removeSelected}
-            onFlip={() =>
-              updateSelected((part) => ({
-                ...part,
-                flipX: !part.flipX
-              }))
-            }
-            onForward={() =>
-              updateSelected((part) => ({
-                ...part,
-                zIndex: getNextZIndex(placedParts)
-              }))
-            }
-            onRotateLeft={() =>
-              updateSelected((part) => ({
-                ...part,
-                rotation: part.rotation - 15
-              }))
-            }
-            onRotateRight={() =>
-              updateSelected((part) => ({
-                ...part,
-                rotation: part.rotation + 15
-              }))
-            }
-            onScaleDown={() =>
-              updateSelected((part) => ({
-                ...part,
-                scale: Math.max(0.45, Number((part.scale - 0.1).toFixed(2)))
-              }))
-            }
-            onScaleUp={() =>
-              updateSelected((part) => ({
-                ...part,
-                scale: Math.min(2.4, Number((part.scale + 0.1).toFixed(2)))
-              }))
-            }
-          />
-          <PartsPalette
-            activeCategory={activeCategory}
-            addPart={addPart}
-            parts={visibleParts}
-            setActiveCategory={setActiveCategory}
-          />
+          <div className="hidden lg:block">
+            <PartsPalette
+              activeCategory={activeCategory}
+              addPart={addPart}
+              mode={mode}
+              parts={visibleParts}
+              placedParts={placedParts}
+              setActiveCategory={setActiveCategory}
+            />
+          </div>
         </aside>
       </div>
 
-      {isHowToOpen ? <HowToPlayModal onClose={() => setIsHowToOpen(false)} /> : null}
+      <PartPaletteSheet
+        activeCategory={activeCategory}
+        addPart={addPart}
+        mode={mode}
+        placedParts={placedParts}
+        setActiveCategory={setActiveCategory}
+      />
+
+      {isHowToOpen ? (
+        <HowToPlayModal mode={mode} onClose={() => setIsHowToOpen(false)} />
+      ) : null}
       {isComplete ? (
         <>
           <ResultPanel
             downloadImage={downloadImage}
+            mode={mode}
             reset={() => setIsComplete(false)}
             score={score}
             shareToX={shareToX}
@@ -473,115 +527,6 @@ export function PyramidGame() {
         </>
       ) : null}
     </div>
-  );
-}
-
-function PyramidScene({
-  background,
-  handlePointerDown,
-  placedParts,
-  selectedId
-}: {
-  background: PyramidBackground;
-  handlePointerDown: (
-    event: React.PointerEvent<SVGGElement>,
-    part: PlacedPyramidPart
-  ) => void;
-  placedParts: PlacedPyramidPart[];
-  selectedId: string | null;
-}) {
-  return (
-    <>
-      <defs>
-        <linearGradient id="pyramidSky" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor={background.sky} />
-          <stop offset="75%" stopColor={background.horizon} />
-        </linearGradient>
-        <linearGradient id="basePyramid" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stopColor="#f8fafc" />
-          <stop offset="52%" stopColor="#cbd5e1" />
-          <stop offset="100%" stopColor="#64748b" />
-        </linearGradient>
-      </defs>
-      <rect fill="url(#pyramidSky)" height="1000" width="1000" />
-      <circle cx="805" cy="145" fill={background.accent} opacity="0.8" r="58" />
-      <path
-        d="M0 700 C190 655 300 720 475 688 C680 650 810 700 1000 660 L1000 1000 L0 1000 Z"
-        fill={background.ground}
-      />
-      <ellipse cx="500" cy="780" fill="#0f172a" opacity="0.18" rx="330" ry="52" />
-      <polygon
-        fill="url(#basePyramid)"
-        points="500,155 170,790 830,790"
-        stroke="#f8fafc"
-        strokeWidth="8"
-      />
-      <polygon fill="#334155" opacity="0.35" points="500,155 830,790 510,790" />
-      <path
-        d="M246 650 L754 650 M300 540 L700 540 M356 430 L644 430 M414 320 L586 320"
-        fill="none"
-        opacity="0.35"
-        stroke="#475569"
-        strokeWidth="8"
-      />
-      {placedParts
-        .slice()
-        .sort((a, b) => a.zIndex - b.zIndex)
-        .map((placedPart) => {
-          const part = pyramidParts.find((item) => item.id === placedPart.partId);
-
-          if (!part) {
-            return null;
-          }
-
-          return (
-            <g
-              cursor="grab"
-              key={placedPart.instanceId}
-              onPointerDown={(event) => handlePointerDown(event, placedPart)}
-              transform={`translate(${placedPart.x} ${placedPart.y}) rotate(${placedPart.rotation}) scale(${
-                placedPart.flipX ? -placedPart.scale : placedPart.scale
-              } ${placedPart.scale})`}
-            >
-              <PyramidPartShape color={part.color} visual={part.visual} />
-              {selectedId === placedPart.instanceId ? (
-                <rect
-                  fill="none"
-                  height="128"
-                  pointerEvents="none"
-                  rx="18"
-                  stroke="#22d3ee"
-                  strokeDasharray="12 8"
-                  strokeWidth="7"
-                  width="128"
-                  x="-64"
-                  y="-64"
-                />
-              ) : null}
-            </g>
-          );
-        })}
-      <text
-        fill="#0f172a"
-        fontFamily="Arial, sans-serif"
-        fontSize="34"
-        fontWeight="800"
-        x="52"
-        y="82"
-      >
-        PYRAMID MAKER
-      </text>
-      <text
-        fill="#475569"
-        fontFamily="Arial, sans-serif"
-        fontSize="22"
-        fontWeight="700"
-        x="52"
-        y="116"
-      >
-        Typring Mini Game
-      </text>
-    </>
   );
 }
 
@@ -628,7 +573,7 @@ function BackgroundSelector({
           >
             <span
               className="mr-2 inline-block h-3 w-3 rounded-full"
-              style={{ backgroundColor: background.sky }}
+              style={{ backgroundColor: background.skyTop }}
             />
             {background.name}
           </button>
@@ -638,105 +583,19 @@ function BackgroundSelector({
   );
 }
 
-function SelectedPartControls({
-  hasSelection,
-  onBack,
-  onDelete,
-  onFlip,
-  onForward,
-  onRotateLeft,
-  onRotateRight,
-  onScaleDown,
-  onScaleUp
-}: {
-  hasSelection: boolean;
-  onBack: () => void;
-  onDelete: () => void;
-  onFlip: () => void;
-  onForward: () => void;
-  onRotateLeft: () => void;
-  onRotateRight: () => void;
-  onScaleDown: () => void;
-  onScaleUp: () => void;
-}) {
-  return (
-    <section className="rounded-2xl border border-white bg-white/86 p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-black text-ink">選択中のパーツ</h2>
-        {!hasSelection ? (
-          <span className="text-xs font-bold text-slate-400">未選択</span>
-        ) : null}
-      </div>
-      <div className="mt-3 grid grid-cols-4 gap-2">
-        <IconButton disabled={!hasSelection} label="小" onClick={onScaleDown}>
-          -
-        </IconButton>
-        <IconButton disabled={!hasSelection} label="大" onClick={onScaleUp}>
-          +
-        </IconButton>
-        <IconButton disabled={!hasSelection} label="左回転" onClick={onRotateLeft}>
-          <RotateCcw className="h-4 w-4" />
-        </IconButton>
-        <IconButton disabled={!hasSelection} label="右回転" onClick={onRotateRight}>
-          <RotateCw className="h-4 w-4" />
-        </IconButton>
-        <IconButton disabled={!hasSelection} label="反転" onClick={onFlip}>
-          <FlipHorizontal className="h-4 w-4" />
-        </IconButton>
-        <IconButton disabled={!hasSelection} label="前面" onClick={onForward}>
-          <ArrowUpToLine className="h-4 w-4" />
-        </IconButton>
-        <IconButton disabled={!hasSelection} label="背面" onClick={onBack}>
-          <ArrowDownToLine className="h-4 w-4" />
-        </IconButton>
-        <IconButton danger disabled={!hasSelection} label="削除" onClick={onDelete}>
-          <Trash2 className="h-4 w-4" />
-        </IconButton>
-      </div>
-    </section>
-  );
-}
-
-function IconButton({
-  children,
-  danger = false,
-  disabled,
-  label,
-  onClick
-}: {
-  children: React.ReactNode;
-  danger?: boolean;
-  disabled?: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      aria-label={label}
-      className={`flex h-11 items-center justify-center rounded-2xl border text-sm font-black shadow-sm disabled:opacity-35 ${
-        danger
-          ? "border-red-100 bg-red-50 text-red-700"
-          : "border-slate-100 bg-white text-ink"
-      }`}
-      disabled={disabled}
-      onClick={onClick}
-      title={label}
-      type="button"
-    >
-      {children}
-    </button>
-  );
-}
-
 function PartsPalette({
   activeCategory,
   addPart,
+  mode,
   parts,
+  placedParts,
   setActiveCategory
 }: {
   activeCategory: PyramidPartCategory;
   addPart: (part: PyramidPart) => void;
+  mode: PyramidMode;
   parts: PyramidPart[];
+  placedParts: PlacedPyramidPart[];
   setActiveCategory: (category: PyramidPartCategory) => void;
 }) {
   return (
@@ -759,37 +618,70 @@ function PartsPalette({
         ))}
       </div>
       <div className="mt-3 grid max-h-[340px] gap-2 overflow-y-auto pr-1">
-        {parts.map((part) => (
-          <button
-            className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 text-left shadow-sm transition hover:border-ringTeal"
-            key={part.id}
-            onClick={() => addPart(part)}
-            type="button"
-          >
-            <span
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: `${part.color}30`, color: part.color }}
+        {parts.map((part) => {
+          const check =
+            mode === "challenge"
+              ? canAddPart(placedParts, part)
+              : ({ ok: true } as const);
+          const blockedReason = check.ok
+            ? null
+            : check.reason === "cost_exceeded"
+              ? "コスト不足"
+              : "配置上限";
+
+          return (
+            <button
+              className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 text-left shadow-sm transition hover:border-ringTeal disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-slate-100"
+              disabled={!check.ok}
+              key={part.id}
+              onClick={() => addPart(part)}
+              title={blockedReason ?? part.description}
+              type="button"
             >
-              <svg height="32" viewBox="-80 -80 160 160" width="32">
-                <PyramidPartShape color={part.color} visual={part.visual} />
-              </svg>
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-ink">
-                {part.name}
+              <span
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+                style={{ backgroundColor: `${part.color}30`, color: part.color }}
+              >
+                <svg height="32" viewBox="-80 -80 160 160" width="32">
+                  <PyramidPartShape color={part.color} visual={part.visual} />
+                </svg>
               </span>
-              <span className="block truncate text-xs font-semibold text-slate-500">
-                +{part.score} / {part.description}
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="truncate text-sm font-black text-ink">
+                    {part.name}
+                  </span>
+                  {mode === "challenge" ? (
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${
+                        check.ok
+                          ? "bg-teal-50 text-ringTeal"
+                          : "bg-red-50 text-red-500"
+                      }`}
+                    >
+                      {blockedReason ?? `コスト${part.cost}`}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="block truncate text-xs font-semibold text-slate-500">
+                  +{part.score} / {part.description}
+                </span>
               </span>
-            </span>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
     </section>
   );
 }
 
-function HowToPlayModal({ onClose }: { onClose: () => void }) {
+function HowToPlayModal({
+  mode,
+  onClose
+}: {
+  mode: PyramidMode;
+  onClose: () => void;
+}) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-4">
       <section className="max-w-md rounded-3xl bg-white p-5 shadow-soft">
@@ -809,9 +701,34 @@ function HowToPlayModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <div className="mt-4 space-y-2 text-sm leading-6 text-slate-600">
-          <p>下のパーツ一覧から好きなパーツを追加します。</p>
-          <p>キャンバス上のパーツはドラッグで移動できます。</p>
-          <p>選択したパーツは拡大、回転、反転、削除、前後移動ができます。</p>
+          <p>パーツ一覧から好きなパーツを追加します。</p>
+          <p>
+            キャンバス上のパーツはドラッグで移動、スマホなら2本指でピンチ拡縮・回転ができます。
+          </p>
+          <p>
+            選択中のパーツはツールバーから拡大、回転、反転、複製、削除、前後移動ができます。
+          </p>
+          {mode === "challenge" ? (
+            <>
+              <p className="font-bold text-ink">チャレンジモードのルール</p>
+              <p>
+                コスト{CHALLENGE_COST_BUDGET}・配置{CHALLENGE_MAX_PARTS}
+                個の上限内でピラミッドを建築します。
+              </p>
+              <p>
+                スコア = パーツ合計 + カテゴリボーナス + 数量ボーナス +
+                シナジーボーナス。特定の組み合わせでシナジーが発動します。
+              </p>
+              <p>公開するとランキングに参加できます。</p>
+            </>
+          ) : (
+            <>
+              <p className="font-bold text-ink">自由編集モード</p>
+              <p>
+                コストや配置数の制限なしで自由に作れます。公開作品はギャラリーに表示されます（ランキング対象外）。
+              </p>
+            </>
+          )}
           <p>完成したら画像保存やX共有ができます。</p>
         </div>
       </section>
@@ -821,13 +738,15 @@ function HowToPlayModal({ onClose }: { onClose: () => void }) {
 
 function ResultPanel({
   downloadImage,
+  mode,
   reset,
   score,
   shareToX
 }: {
   downloadImage: () => void;
+  mode: PyramidMode;
   reset: () => void;
-  score: { categoryCount: number; partCount: number; totalScore: number };
+  score: PyramidScore;
   shareToX: () => void;
 }) {
   return (
@@ -841,6 +760,16 @@ function ResultPanel({
         <ResultNumber label="パーツ数" value={score.partCount} />
         <ResultNumber label="カテゴリ数" value={score.categoryCount} />
       </div>
+      {mode === "challenge" ? (
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <ResultNumber label="基本スコア" value={score.baseScore} />
+          <ResultNumber
+            label="ボーナス"
+            value={score.varietyBonus + score.volumeBonus}
+          />
+          <ResultNumber label="シナジー" value={score.synergyBonus} />
+        </div>
+      ) : null}
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
         <button
           className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-bold text-white"

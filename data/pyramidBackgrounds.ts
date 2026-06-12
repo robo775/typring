@@ -2,35 +2,47 @@ import type { PyramidBackground } from "@/types/pyramid";
 
 export const pyramidBackgrounds: PyramidBackground[] = [
   {
-    accent: "#f8c471",
-    ground: "#d7b98a",
-    horizon: "#f7efe2",
+    groundSide: "#b8965f",
+    groundTop: "#e3c98f",
+    horizon: "#fdf3dd",
     id: "desert",
+    isNight: false,
     name: "砂漠",
-    sky: "#9ed7f3"
+    skyBottom: "#cdeaf7",
+    skyTop: "#5db5e8",
+    sunColor: "#fbbf24"
   },
   {
-    accent: "#7dd3fc",
-    ground: "#334155",
-    horizon: "#1e293b",
+    groundSide: "#1e293b",
+    groundTop: "#3b4a63",
+    horizon: "#2c3a55",
     id: "night",
+    isNight: true,
     name: "夜",
-    sky: "#0f172a"
+    skyBottom: "#1e2c4a",
+    skyTop: "#0b1226",
+    sunColor: "#fef3c7"
   },
   {
-    accent: "#86efac",
-    ground: "#65a30d",
-    horizon: "#dcfce7",
+    groundSide: "#4d7c0f",
+    groundTop: "#84cc16",
+    horizon: "#ecfccb",
     id: "forest",
+    isNight: false,
     name: "森",
-    sky: "#bbf7d0"
+    skyBottom: "#d9f99d",
+    skyTop: "#7dd3fc",
+    sunColor: "#fde047"
   },
   {
-    accent: "#a78bfa",
-    ground: "#64748b",
-    horizon: "#e0e7ff",
+    groundSide: "#475569",
+    groundTop: "#94a3b8",
+    horizon: "#e9d5ff",
     id: "city",
+    isNight: false,
     name: "都市",
-    sky: "#c7d2fe"
+    skyBottom: "#fbcfe8",
+    skyTop: "#818cf8",
+    sunColor: "#fb923c"
   }
 ];

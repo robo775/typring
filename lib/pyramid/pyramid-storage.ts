@@ -1,14 +1,24 @@
-import type { PlacedPyramidPart, PyramidSaveData } from "@/types/pyramid";
+import type {
+  PlacedPyramidPart,
+  PyramidMode,
+  PyramidSaveData
+} from "@/types/pyramid";
 
-const STORAGE_KEY = "typring:pyramid-maker:v1";
+const LEGACY_STORAGE_KEY = "typring:pyramid-maker:v1";
 
-export function loadPyramidSave(): PyramidSaveData | null {
+function storageKey(mode: PyramidMode) {
+  return `typring:pyramid-maker:${mode}:v2`;
+}
+
+export function loadPyramidSave(mode: PyramidMode): PyramidSaveData | null {
   if (typeof window === "undefined") {
     return null;
   }
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    migrateLegacySave();
+
+    const raw = window.localStorage.getItem(storageKey(mode));
 
     if (!raw) {
       return null;
@@ -16,15 +26,16 @@ export function loadPyramidSave(): PyramidSaveData | null {
 
     const parsed = JSON.parse(raw) as Partial<PyramidSaveData>;
 
-    if (parsed.version !== 1 || !Array.isArray(parsed.placedParts)) {
+    if (parsed.version !== 2 || !Array.isArray(parsed.placedParts)) {
       return null;
     }
 
     return {
       backgroundId: parsed.backgroundId ?? "desert",
+      mode,
       placedParts: parsed.placedParts as PlacedPyramidPart[],
       updatedAt: parsed.updatedAt ?? new Date().toISOString(),
-      version: 1
+      version: 2
     };
   } catch {
     return null;
@@ -32,6 +43,7 @@ export function loadPyramidSave(): PyramidSaveData | null {
 }
 
 export function savePyramidState(
+  mode: PyramidMode,
   backgroundId: string,
   placedParts: PlacedPyramidPart[]
 ) {
@@ -41,18 +53,56 @@ export function savePyramidState(
 
   const saveData: PyramidSaveData = {
     backgroundId,
+    mode,
     placedParts,
     updatedAt: new Date().toISOString(),
-    version: 1
+    version: 2
   };
 
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+  window.localStorage.setItem(storageKey(mode), JSON.stringify(saveData));
 }
 
-export function clearPyramidSave() {
+export function clearPyramidSave(mode: PyramidMode) {
   if (typeof window === "undefined") {
     return;
   }
 
-  window.localStorage.removeItem(STORAGE_KEY);
+  window.localStorage.removeItem(storageKey(mode));
+}
+
+function migrateLegacySave() {
+  const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+
+  if (!raw) {
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as {
+      backgroundId?: string;
+      placedParts?: PlacedPyramidPart[];
+      updatedAt?: string;
+      version?: number;
+    };
+
+    if (
+      parsed.version === 1 &&
+      Array.isArray(parsed.placedParts) &&
+      !window.localStorage.getItem(storageKey("free"))
+    ) {
+      const migrated: PyramidSaveData = {
+        backgroundId: parsed.backgroundId ?? "desert",
+        mode: "free",
+        placedParts: parsed.placedParts,
+        updatedAt: parsed.updatedAt ?? new Date().toISOString(),
+        version: 2
+      };
+      window.localStorage.setItem(
+        storageKey("free"),
+        JSON.stringify(migrated)
+      );
+    }
+  } finally {
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+  }
 }

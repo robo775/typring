@@ -27,6 +27,11 @@ export async function createTypeWerewolfRoom(formData: FormData) {
     redirect("/games/type-werewolf?error=type_system_required");
   }
 
+  const lockedRoom = await getUserTypeWerewolfLock(supabase, user.id);
+  if (lockedRoom) {
+    redirect(`/games/type-werewolf/rooms/${lockedRoom.room_id}?error=already_in_room`);
+  }
+
   const { data: ownType } = await supabase
     .from("user_types")
     .select("user_id")
@@ -70,6 +75,11 @@ export async function joinTypeWerewolfRoom(formData: FormData) {
     redirect("/games/type-werewolf?error=room_code_required");
   }
 
+  const lockedRoom = await getUserTypeWerewolfLock(supabase, user.id);
+  if (lockedRoom) {
+    redirect(`/games/type-werewolf/rooms/${lockedRoom.room_id}?error=already_in_room`);
+  }
+
   const { data: room } = await supabase
     .from("type_werewolf_rooms")
     .select("id,status")
@@ -78,6 +88,10 @@ export async function joinTypeWerewolfRoom(formData: FormData) {
 
   if (!room) {
     redirect("/games/type-werewolf?error=room_not_found");
+  }
+
+  if (room.status !== "waiting") {
+    redirect("/games/type-werewolf?error=room_not_waiting");
   }
 
   redirect(`/games/type-werewolf/rooms/${room.id}`);
@@ -108,6 +122,11 @@ export async function selectTypeWerewolfCharacter(formData: FormData) {
 
   if (!room || room.status !== "waiting") {
     redirect(`${roomPath}?error=room_not_waiting`);
+  }
+
+  const lockedRoom = await getUserTypeWerewolfLock(supabase, user.id, roomId);
+  if (lockedRoom) {
+    redirect(`/games/type-werewolf/rooms/${lockedRoom.room_id}?error=already_in_room`);
   }
 
   const { data: ownType } = await supabase
@@ -167,6 +186,33 @@ export async function leaveTypeWerewolfRoom(formData: FormData) {
 
   revalidatePath(roomPath);
   redirect("/games/type-werewolf");
+}
+
+export async function deleteTypeWerewolfRoom(formData: FormData) {
+  const supabase = createSupabaseServerClient();
+  const roomId = getString(formData, "room_id");
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user || !roomId) {
+    redirect("/games/type-werewolf");
+  }
+
+  const { data: room } = await supabase
+    .from("type_werewolf_rooms")
+    .select("id,host_user_id")
+    .eq("id", roomId)
+    .maybeSingle();
+
+  if (!room || room.host_user_id !== user.id) {
+    redirect(`/games/type-werewolf/rooms/${roomId}?error=delete_not_allowed`);
+  }
+
+  await supabase.from("type_werewolf_rooms").delete().eq("id", roomId);
+
+  revalidatePath("/games/type-werewolf");
+  redirect("/games/type-werewolf?deleted=1");
 }
 
 export async function startTypeWerewolfRoom(formData: FormData) {
@@ -391,6 +437,34 @@ async function finishRoomIfNeeded(
       .update({ finished_at: new Date().toISOString(), status: "finished" })
       .eq("id", roomId);
   }
+}
+
+async function getUserTypeWerewolfLock(
+  supabase: ReturnType<typeof createSupabaseServerClient>,
+  userId: string,
+  exceptRoomId?: string
+) {
+  const { data: hostedRoom } = await supabase
+    .from("type_werewolf_rooms")
+    .select("id")
+    .eq("host_user_id", userId)
+    .neq("id", exceptRoomId ?? "00000000-0000-0000-0000-000000000000")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (hostedRoom?.[0]) {
+    return { room_id: hostedRoom[0].id };
+  }
+
+  const { data: playerRoom } = await supabase
+    .from("type_werewolf_players")
+    .select("room_id")
+    .eq("user_id", userId)
+    .neq("room_id", exceptRoomId ?? "00000000-0000-0000-0000-000000000000")
+    .order("joined_at", { ascending: false })
+    .limit(1);
+
+  return playerRoom?.[0] ?? null;
 }
 
 function getString(formData: FormData, key: string) {

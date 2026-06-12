@@ -1,19 +1,24 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { PyramidModeBadge } from "@/components/pyramid/pyramid-creation-list";
 import { PyramidPreview } from "@/components/pyramid/pyramid-preview";
 import { sanitizePlacedParts } from "@/lib/pyramid/sanitize-pyramid";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { PyramidMode } from "@/types/pyramid";
 
 type PyramidCreationRow = {
   background_id: string;
   category_count: number;
+  cost_used: number;
   creator:
     | { display_name: string; twitter_handle: string | null }
     | { display_name: string; twitter_handle: string | null }[]
     | null;
   id: string;
+  mode: PyramidMode;
   part_count: number;
   placed_parts: unknown;
+  synergy_bonus: number;
   title: string;
   total_score: number;
 };
@@ -26,7 +31,7 @@ export default async function PyramidCreationPage({
   const supabase = createSupabaseServerClient();
   const { data } = await supabase
     .from("pyramid_creations")
-    .select("id,title,background_id,placed_parts,total_score,part_count,category_count,creator:profiles!pyramid_creations_user_id_fkey(display_name,twitter_handle)")
+    .select("id,title,background_id,placed_parts,total_score,part_count,category_count,mode,synergy_bonus,cost_used,creator:profiles!pyramid_creations_user_id_fkey(display_name,twitter_handle)")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -60,7 +65,10 @@ export default async function PyramidCreationPage({
           <p className="text-xs font-bold uppercase tracking-wide text-ringViolet">
             PYRAMID MAKER
           </p>
-          <h1 className="mt-2 text-2xl font-black text-ink">{creation.title}</h1>
+          <div className="mt-2 flex items-center gap-2">
+            <h1 className="text-2xl font-black text-ink">{creation.title}</h1>
+            <PyramidModeBadge mode={creation.mode} />
+          </div>
           <p className="mt-2 text-sm text-slate-500">
             by {creator?.display_name ?? "Typring user"}
           </p>
@@ -68,6 +76,12 @@ export default async function PyramidCreationPage({
             <ScoreBox label="Score" value={creation.total_score} />
             <ScoreBox label="Parts" value={creation.part_count} />
             <ScoreBox label="Types" value={creation.category_count} />
+            {creation.mode === "challenge" ? (
+              <>
+                <ScoreBox label="シナジー" value={creation.synergy_bonus} />
+                <ScoreBox label="コスト" value={creation.cost_used} />
+              </>
+            ) : null}
           </div>
           <div className="mt-5 flex flex-col gap-2">
             <a
