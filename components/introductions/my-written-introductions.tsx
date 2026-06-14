@@ -19,20 +19,24 @@ type MyWrittenIntroductionsProps = {
   hasError?: boolean;
   hasNextPage: boolean;
   introductions: WrittenIntroductionItem[];
+  pageHref: string;
+  profileName: string;
 };
 
 export function MyWrittenIntroductions({
   currentPage,
   hasError = false,
   hasNextPage,
-  introductions
+  introductions,
+  pageHref,
+  profileName
 }: MyWrittenIntroductionsProps) {
   return (
     <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
       <SectionHeader
         eyebrow="Introductions"
         title="書いた紹介文"
-        description="あなたがほかのユーザーに書いた紹介文です。最近書いたものから表示します。"
+        description={`${profileName}さんがほかのユーザーに書いた紹介文です。最近書いたものから表示します。`}
       />
 
       <div className="mt-5 grid gap-3">
@@ -50,8 +54,6 @@ export function MyWrittenIntroductions({
         ) : (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-500">
             まだ紹介文を書いていません。
-            <br />
-            気になるユーザーのプロフィールから紹介文を書いてみましょう。
           </div>
         )}
       </div>
@@ -60,7 +62,7 @@ export function MyWrittenIntroductions({
         {currentPage > 1 ? (
           <Link
             className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-700 transition hover:-translate-y-0.5"
-            href={`/me?introPage=${currentPage - 1}`}
+            href={buildPageHref(pageHref, currentPage - 1)}
           >
             <ChevronLeft className="h-4 w-4" />
             前へ
@@ -77,7 +79,7 @@ export function MyWrittenIntroductions({
         {hasNextPage ? (
           <Link
             className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-slate-700 transition hover:-translate-y-0.5"
-            href={`/me?introPage=${currentPage + 1}`}
+            href={buildPageHref(pageHref, currentPage + 1)}
           >
             次へ
             <ChevronRight className="h-4 w-4" />
@@ -156,4 +158,8 @@ function formatDate(value: string) {
     month: "2-digit",
     year: "numeric"
   }).format(new Date(value));
+}
+
+function buildPageHref(baseHref: string, page: number) {
+  return `${baseHref}?writtenIntroPage=${page}`;
 }

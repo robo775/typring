@@ -7,7 +7,7 @@ export default function MeLoading() {
         <SectionHeader
           eyebrow="マイページ"
           title="読み込み中..."
-          description="プロフィールと紹介文を読み込み中..."
+          description="プロフィールを読み込み中..."
         />
       </section>
       <div className="h-96 rounded-2xl border border-white bg-white/60 shadow-sm" />

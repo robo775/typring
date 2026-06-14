@@ -1,9 +1,5 @@
 import Link from "next/link";
 import { DeleteAccountSection } from "@/components/account/delete-account-section";
-import {
-  MyWrittenIntroductions,
-  type WrittenIntroductionItem
-} from "@/components/introductions/my-written-introductions";
 import { UserLevelPanel } from "@/components/levels/user-level-panel";
 import { AvatarRefreshForm } from "@/components/profiles/avatar-refresh-form";
 import { ProfileCard } from "@/components/profiles/profile-card";
@@ -20,7 +16,6 @@ export default async function MePage({
   searchParams?: {
     avatar_refreshed?: string;
     error?: string;
-    introPage?: string;
     saved?: string;
   };
 }) {
@@ -115,40 +110,6 @@ export default async function MePage({
   const levelSummary = await getUserLevelSummary(supabase, user.id);
   const showExternalTyping = visibilitySettings?.allow_external_typing ?? true;
   const visibleVotedTypes = showExternalTyping ? votedTypes : [];
-  const introductionPage = getPageNumber(searchParams?.introPage);
-  const introductionPageSize = 10;
-  const introductionFrom = (introductionPage - 1) * introductionPageSize;
-  const introductionTo = introductionFrom + introductionPageSize;
-  const {
-    data: writtenIntroductionRows,
-    error: writtenIntroductionError
-  } = await supabase
-    .from("profile_introductions")
-    .select("id,body,created_at,updated_at,target_profile:profiles!profile_introductions_target_user_id_fkey(display_name,twitter_handle,avatar_url)")
-    .eq("author_user_id", user.id)
-    .order("updated_at", { ascending: false })
-    .order("created_at", { ascending: false })
-    .range(introductionFrom, introductionTo);
-  const writtenIntroductionItems = (
-    (writtenIntroductionRows ?? []) as unknown as Array<
-      Omit<WrittenIntroductionItem, "target_profile"> & {
-        target_profile:
-          | WrittenIntroductionItem["target_profile"]
-          | WrittenIntroductionItem["target_profile"][];
-      }
-    >
-  ).map((introduction) => ({
-    ...introduction,
-    target_profile: Array.isArray(introduction.target_profile)
-      ? introduction.target_profile[0] ?? null
-      : introduction.target_profile
-  }));
-  const hasNextIntroductionPage =
-    writtenIntroductionItems.length > introductionPageSize;
-  const visibleWrittenIntroductions = writtenIntroductionItems.slice(
-    0,
-    introductionPageSize
-  );
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[1fr_380px]">
@@ -193,12 +154,6 @@ export default async function MePage({
             typeValues={typeValues}
           />
         </section>
-        <MyWrittenIntroductions
-          currentPage={introductionPage}
-          hasError={Boolean(writtenIntroductionError)}
-          hasNextPage={hasNextIntroductionPage}
-          introductions={visibleWrittenIntroductions}
-        />
         <DeleteAccountSection />
       </div>
       <ProfileCard
@@ -213,14 +168,4 @@ export default async function MePage({
       />
     </div>
   );
-}
-
-function getPageNumber(value: string | undefined) {
-  const page = Number(value);
-
-  if (!Number.isInteger(page) || page < 1) {
-    return 1;
-  }
-
-  return page;
 }

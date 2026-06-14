@@ -3,6 +3,10 @@ import type { ReactNode } from "react";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { BookmarkButton } from "@/components/bookmarks/bookmark-button";
 import { CompatibilityPanel } from "@/components/compatibility/compatibility-panel";
+import {
+  MyWrittenIntroductions,
+  type WrittenIntroductionItem
+} from "@/components/introductions/my-written-introductions";
 import { ProfileIntroductions } from "@/components/introductions/profile-introductions";
 import { MutualBadge } from "@/components/mutuals/mutual-badge";
 import { ProfileCard } from "@/components/profiles/profile-card";
@@ -63,6 +67,7 @@ export default async function UserProfilePage({
     introduction_deleted?: string;
     introduced?: string;
     voted?: string;
+    writtenIntroPage?: string;
   };
 }) {
   const supabase = createSupabaseServerClient();
@@ -217,6 +222,42 @@ export default async function UserProfilePage({
       updated_at: introduction.updated_at
     })
   );
+  const writtenIntroductionPage = getPageNumber(searchParams?.writtenIntroPage);
+  const writtenIntroductionPageSize = 10;
+  const writtenIntroductionFrom =
+    (writtenIntroductionPage - 1) * writtenIntroductionPageSize;
+  const writtenIntroductionTo =
+    writtenIntroductionFrom + writtenIntroductionPageSize;
+  const {
+    data: writtenIntroductionRows,
+    error: writtenIntroductionError
+  } = await supabase
+    .from("profile_introductions")
+    .select("id,body,created_at,updated_at,target_profile:profiles!profile_introductions_target_user_id_fkey(display_name,twitter_handle,avatar_url)")
+    .eq("author_user_id", profile.id)
+    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .range(writtenIntroductionFrom, writtenIntroductionTo);
+  const writtenIntroductionItems = (
+    (writtenIntroductionRows ?? []) as unknown as Array<
+      Omit<WrittenIntroductionItem, "target_profile"> & {
+        target_profile:
+          | WrittenIntroductionItem["target_profile"]
+          | WrittenIntroductionItem["target_profile"][];
+      }
+    >
+  ).map((introduction) => ({
+    ...introduction,
+    target_profile: Array.isArray(introduction.target_profile)
+      ? introduction.target_profile[0] ?? null
+      : introduction.target_profile
+  }));
+  const hasNextWrittenIntroductionPage =
+    writtenIntroductionItems.length > writtenIntroductionPageSize;
+  const visibleWrittenIntroductions = writtenIntroductionItems.slice(
+    0,
+    writtenIntroductionPageSize
+  );
 
   const { data: createdPolls } = await supabase
     .from("polls")
@@ -348,6 +389,14 @@ export default async function UserProfilePage({
           isOwnProfile={user?.id === profile.id}
           targetUserId={profile.id}
         />
+        <MyWrittenIntroductions
+          currentPage={writtenIntroductionPage}
+          hasError={Boolean(writtenIntroductionError)}
+          hasNextPage={hasNextWrittenIntroductionPage}
+          introductions={visibleWrittenIntroductions}
+          pageHref={`/users/${encodeURIComponent(profile.twitter_handle ?? handle)}`}
+          profileName={profile.display_name}
+        />
         <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
           <h2 className="text-lg font-bold text-ink">作成したアンケート</h2>
           {(createdPolls ?? []).length > 0 ? (
@@ -406,4 +455,14 @@ function getTime(value: string | null) {
 
   const time = new Date(value).getTime();
   return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
+}
+
+function getPageNumber(value: string | undefined) {
+  const page = Number(value);
+
+  if (!Number.isInteger(page) || page < 1) {
+    return 1;
+  }
+
+  return page;
 }
