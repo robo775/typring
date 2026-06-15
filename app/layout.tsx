@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import {
-  BarChart3,
+  Activity,
   Bookmark,
-  BookOpen,
-  ClipboardList,
-  Gamepad2,
   Home,
   Search,
   UserRound
@@ -28,10 +25,7 @@ const navItems = [
   { href: "/", label: "ホーム", icon: Home },
   { href: "/search", label: "検索", icon: Search },
   { href: "/bookmarks", label: "ブックマーク", icon: Bookmark },
-  { href: "/polls", label: "アンケート", icon: ClipboardList },
-  { href: "/games", label: "ゲーム", icon: Gamepad2 },
-  { href: "/stats", label: "統計", icon: BarChart3 },
-  { href: "/handbook", label: "ハンドブック", icon: BookOpen },
+  { href: "/activities", label: "アクティビティ", icon: Activity },
   { href: "/me", label: "マイページ", icon: UserRound }
 ];
 
@@ -68,7 +62,7 @@ export default function RootLayout({
           </header>
           <main className="pb-20 sm:pb-0">{children}</main>
           <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-white/80 bg-white/92 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur sm:hidden">
-            <div className="mx-auto grid max-w-lg grid-cols-8 gap-1">
+            <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
 
