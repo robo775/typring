@@ -1,17 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BarChart3, BookOpen, ClipboardList, Gamepad2 } from "lucide-react";
+import {
+  BarChart3,
+  BookOpen,
+  ClipboardList,
+  Gamepad2,
+  Sparkles
+} from "lucide-react";
 import { SectionHeader } from "@/components/ui/section-header";
 
 export const metadata: Metadata = {
   title: "アクティビティ",
   description:
-    "Typringの統計、ハンドブック、アンケート、ゲームをまとめて探せるページです。"
+    "Typringの統計、ハンドブック、アンケート、キャラ診断、ゲームをまとめて探せるページです。"
 };
 
 const activityItems = [
   {
-    description: "自認タイプの組み合わせや分布を眺められます。",
+    description: "類型の組み合わせや分布を眺められます。",
     href: "/stats",
     icon: BarChart3,
     label: "統計"
@@ -29,6 +35,12 @@ const activityItems = [
     label: "アンケート"
   },
   {
+    description: "作品キャラクターをみんなで類型投票できます。",
+    href: "/character-diagnoses",
+    icon: Sparkles,
+    label: "キャラ診断"
+  },
+  {
     description: "PYRAMID MAKERなど、Typring内のミニゲームで遊べます。",
     href: "/games",
     icon: Gamepad2,
@@ -43,7 +55,7 @@ export default function ActivitiesPage() {
         <SectionHeader
           eyebrow="Activity"
           title="アクティビティ"
-          description="統計、ハンドブック、アンケート、ゲームをここにまとめました。"
+          description="統計、ハンドブック、アンケート、キャラ診断、ゲームをここにまとめました。"
         />
       </section>
 
