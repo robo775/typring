@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Plus, Sparkles } from "lucide-react";
-import { getCharacterImageUrl } from "@/lib/character-diagnoses/images";
+import { Plus, Search, Sparkles } from "lucide-react";
+import { CharacterDiagnosisCard } from "@/components/character-diagnoses/character-diagnosis-card";
 import { SectionHeader } from "@/components/ui/section-header";
+import { getCharacterImageUrl } from "@/lib/character-diagnoses/images";
+import {
+  buildCharacterVoteSummary,
+  getTopTypesBySystem,
+  type CharacterTopType,
+  type CharacterTypeVoteRow,
+  type TypeSystemForSummary,
+  type TypeValueForSummary
+} from "@/lib/character-diagnoses/vote-summary";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -12,51 +21,87 @@ export const metadata: Metadata = {
     "作品キャラクターに対してMBTIやエニアグラムなどの類型を投票できるページです。"
 };
 
+type SearchParams = Record<string, string | string[] | undefined>;
+
 type CharacterDiagnosisRow = {
   character_name: string;
   created_at: string;
-  creator:
-    | { display_name: string; twitter_handle: string | null }
-    | { display_name: string; twitter_handle: string | null }[]
-    | null;
+  description: string | null;
   id: string;
   image_path: string | null;
   work_title: string | null;
 };
 
-type VoteRow = {
-  character_diagnosis_id: string;
-};
+const PAGE_SIZE = 20;
+const MAX_SEARCH_ROWS = 500;
 
 export default async function CharacterDiagnosesPage({
   searchParams
 }: {
-  searchParams?: { deleted?: string; error?: string; sort?: string };
+  searchParams?: SearchParams;
 }) {
   const supabase = createSupabaseServerClient();
-  const sort = searchParams?.sort === "votes" ? "votes" : "latest";
-  const { data: rows } = await supabase
-    .from("character_diagnoses")
-    .select(
-      "id,work_title,character_name,image_path,created_at,creator:profiles!character_diagnoses_creator_user_id_fkey(display_name,twitter_handle)"
-    )
-    .is("deleted_at", null)
-    .eq("is_public", true)
-    .order("created_at", { ascending: false })
-    .limit(48);
-  const characters = normalizeCharacters(rows);
-  const voteCounts = await getVoteCounts(
-    supabase,
-    characters.map((character) => character.id)
+  const keywordQuery = getParam(searchParams, "q").trim().slice(0, 80);
+  const sort = getParam(searchParams, "sort") === "votes" ? "votes" : "latest";
+  const page = Math.max(1, Number(getParam(searchParams, "page") || "1") || 1);
+  const { data: typeSystemRows } = await supabase
+    .from("type_systems")
+    .select("id,name,position")
+    .eq("is_active", true)
+    .order("position", { ascending: true })
+    .order("name", { ascending: true });
+  const { data: typeValueRows } = await supabase
+    .from("type_values")
+    .select("id,type_system_id,code,name,position")
+    .eq("is_active", true)
+    .order("position", { ascending: true })
+    .order("name", { ascending: true });
+  const typeSystems = (typeSystemRows ?? []) as TypeSystemForSummary[];
+  const typeValues = (typeValueRows ?? []) as TypeValueForSummary[];
+  const selectedTopTypeValueIds = getSelectedTopTypeValueIds(
+    searchParams,
+    typeSystems
+  );
+  const characters = await searchCharacters({
+    keywordQuery,
+    supabase
+  });
+  const characterIds = characters.map((character) => character.id);
+  const votesByCharacterId = await getVotesByCharacterId(supabase, characterIds);
+  const topTypesByCharacterId = new Map<string, CharacterTopType[]>();
+  const voteCountsByCharacterId = new Map<string, number>();
+
+  for (const character of characters) {
+    const votes = votesByCharacterId.get(character.id) ?? [];
+    const summary = buildCharacterVoteSummary({
+      typeSystems,
+      typeValues,
+      votes
+    });
+    topTypesByCharacterId.set(character.id, getTopTypesBySystem(summary));
+    voteCountsByCharacterId.set(character.id, votes.length);
+  }
+
+  const filteredCharacters = characters.filter((character) =>
+    matchesSelectedTopTypes({
+      selectedTopTypeValueIds,
+      topTypes: topTypesByCharacterId.get(character.id) ?? []
+    })
   );
   const sortedCharacters =
     sort === "votes"
-      ? [...characters].sort(
+      ? [...filteredCharacters].sort(
           (a, b) =>
-            (voteCounts.get(b.id) ?? 0) - (voteCounts.get(a.id) ?? 0) ||
+            (voteCountsByCharacterId.get(b.id) ?? 0) -
+              (voteCountsByCharacterId.get(a.id) ?? 0) ||
             getTime(b.created_at) - getTime(a.created_at)
         )
-      : characters;
+      : filteredCharacters;
+  const visibleCharacters = sortedCharacters.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
+  const hasNext = sortedCharacters.length > page * PAGE_SIZE;
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
@@ -64,7 +109,7 @@ export default async function CharacterDiagnosesPage({
         <SectionHeader
           eyebrow="Character Types"
           title="キャラクター他者診断"
-          description="みんなはこのキャラをどう見る？作品キャラクターの類型を投票できます。"
+          description="作品名・キャラ名・みんなの診断1位から、投票したいキャラを探せます。"
         />
         <Link
           className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white shadow-soft"
@@ -75,42 +120,110 @@ export default async function CharacterDiagnosesPage({
         </Link>
       </div>
 
-      {searchParams?.deleted ? (
+      {getParam(searchParams, "deleted") ? (
         <p className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-700">
           キャラクター診断を削除しました。
         </p>
       ) : null}
-      {searchParams?.error ? (
+      {getParam(searchParams, "error") ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {searchParams.error}
+          {getParam(searchParams, "error")}
         </p>
       ) : null}
 
+      <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
+        <form className="grid gap-4" method="get">
+          <input name="sort" type="hidden" value={sort} />
+          <label className="grid gap-2 text-sm font-semibold text-ink">
+            作品名・キャラクター名
+            <input
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal outline-none transition focus:border-ringTeal focus:ring-2 focus:ring-teal-100"
+              defaultValue={keywordQuery}
+              name="q"
+              placeholder="例: フリーレン、ノート、セイバー"
+            />
+          </label>
+          <div className="grid gap-3 md:grid-cols-2">
+            {typeSystems.map((system) => {
+              const values = typeValues.filter(
+                (value) => value.type_system_id === system.id
+              );
+
+              return (
+                <label
+                  className="grid gap-2 text-sm font-semibold text-ink"
+                  key={system.id}
+                >
+                  {system.name} の1位
+                  <select
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal outline-none transition focus:border-ringTeal focus:ring-2 focus:ring-teal-100"
+                    defaultValue={selectedTopTypeValueIds.get(system.id) ?? ""}
+                    name={`top:${system.id}`}
+                  >
+                    <option value="">指定しない</option>
+                    {values.map((value) => (
+                      <option key={value.id} value={value.id}>
+                        {value.name || value.code}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white"
+              type="submit"
+            >
+              <Search className="h-4 w-4" />
+              検索
+            </button>
+            <Link
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-ink"
+              href="/character-diagnoses"
+            >
+              クリア
+            </Link>
+          </div>
+        </form>
+      </section>
+
       <div className="flex gap-2">
-        <SortLink active={sort === "latest"} href="/character-diagnoses">
+        <SortLink active={sort === "latest"} href={createSortHref(searchParams, "latest")}>
           新着順
         </SortLink>
-        <SortLink active={sort === "votes"} href="/character-diagnoses?sort=votes">
+        <SortLink active={sort === "votes"} href={createSortHref(searchParams, "votes")}>
           投票数順
         </SortLink>
       </div>
 
-      {sortedCharacters.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {sortedCharacters.map((character) => (
-            <CharacterCard
-              character={character}
-              imageUrl={getCharacterImageUrl(supabase, character.image_path)}
-              key={character.id}
-              voteCount={voteCounts.get(character.id) ?? 0}
-            />
+      {visibleCharacters.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {visibleCharacters.map((character) => (
+            <Link href={`/character-diagnoses/${character.id}`} key={character.id}>
+              <CharacterDiagnosisCard
+                characterName={character.character_name}
+                description={character.description}
+                imageUrl={getCharacterImageUrl(supabase, character.image_path)}
+                topTypes={topTypesByCharacterId.get(character.id) ?? []}
+                voteCount={voteCountsByCharacterId.get(character.id) ?? 0}
+                workTitle={character.work_title}
+              />
+            </Link>
           ))}
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-sm text-slate-500">
-          まだキャラクター診断はありません。
+          条件に合うキャラクター診断は見つかりませんでした。
         </div>
       )}
+
+      <CharacterPagination
+        hasNext={hasNext}
+        page={page}
+        searchParams={searchParams}
+      />
     </div>
   );
 }
@@ -138,82 +251,189 @@ function SortLink({
   );
 }
 
-function CharacterCard({
-  character,
-  imageUrl,
-  voteCount
+async function searchCharacters({
+  keywordQuery,
+  supabase
 }: {
-  character: CharacterDiagnosisRow;
-  imageUrl: string | null;
-  voteCount: number;
+  keywordQuery: string;
+  supabase: ReturnType<typeof createSupabaseServerClient>;
 }) {
-  const creator = Array.isArray(character.creator)
-    ? character.creator[0]
-    : character.creator;
+  let query = supabase
+    .from("character_diagnoses")
+    .select("id,work_title,character_name,image_path,description,created_at")
+    .is("deleted_at", null)
+    .eq("is_public", true)
+    .order("created_at", { ascending: false })
+    .limit(MAX_SEARCH_ROWS);
 
-  return (
-    <Link
-      className="overflow-hidden rounded-2xl border border-white bg-white/88 shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft"
-      href={`/character-diagnoses/${character.id}`}
-    >
-      <div className="aspect-[4/3] bg-gradient-to-br from-teal-50 via-white to-violet-100">
-        {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img alt="" className="h-full w-full object-cover" src={imageUrl} />
-        ) : (
-          <div className="grid h-full place-items-center text-ringViolet">
-            <Sparkles className="h-10 w-10" />
-          </div>
-        )}
-      </div>
-      <div className="p-4">
-        <p className="truncate text-xs font-bold text-ringViolet">
-          {character.work_title ?? "作品名未設定"}
-        </p>
-        <h2 className="mt-1 truncate text-lg font-black text-ink">
-          {character.character_name}
-        </h2>
-        <p className="mt-1 truncate text-xs text-slate-500">
-          by {creator?.display_name ?? "Typring user"}
-        </p>
-        <p className="mt-3 text-xs font-bold text-slate-400">{voteCount}票</p>
-      </div>
-    </Link>
-  );
+  if (keywordQuery) {
+    const likePattern = `%${escapePostgrestLikePattern(keywordQuery)}%`;
+    query = query.or(
+      [
+        `work_title.ilike.${likePattern}`,
+        `character_name.ilike.${likePattern}`
+      ].join(",")
+    );
+  }
+
+  const { data } = await query;
+  return (data ?? []) as CharacterDiagnosisRow[];
 }
 
-async function getVoteCounts(
+async function getVotesByCharacterId(
   supabase: ReturnType<typeof createSupabaseServerClient>,
   characterIds: string[]
 ) {
-  const counts = new Map<string, number>();
+  const votesByCharacterId = new Map<string, CharacterTypeVoteRow[]>();
 
   if (characterIds.length === 0) {
-    return counts;
+    return votesByCharacterId;
   }
 
   const { data } = await supabase
     .from("character_type_votes")
-    .select("character_diagnosis_id")
+    .select("character_diagnosis_id,type_system_id,type_value_id,created_at")
     .in("character_diagnosis_id", characterIds);
 
-  for (const vote of (data ?? []) as VoteRow[]) {
-    counts.set(
-      vote.character_diagnosis_id,
-      (counts.get(vote.character_diagnosis_id) ?? 0) + 1
-    );
+  for (const vote of (data ?? []) as CharacterTypeVoteRow[]) {
+    const votes = votesByCharacterId.get(vote.character_diagnosis_id) ?? [];
+    votes.push(vote);
+    votesByCharacterId.set(vote.character_diagnosis_id, votes);
   }
 
-  return counts;
+  return votesByCharacterId;
 }
 
-function normalizeCharacters(data: unknown): CharacterDiagnosisRow[] {
-  return ((data ?? []) as CharacterDiagnosisRow[]).map((character) => ({
-    ...character,
-    creator: Array.isArray(character.creator)
-      ? character.creator[0] ?? null
-      : character.creator
-  }));
+function getParam(searchParams: SearchParams | undefined, key: string) {
+  const value = searchParams?.[key];
+
+  if (Array.isArray(value)) {
+    return value[0] ?? "";
+  }
+
+  return value ?? "";
+}
+
+function getSelectedTopTypeValueIds(
+  searchParams: SearchParams | undefined,
+  typeSystems: { id: string }[]
+) {
+  const selected = new Map<string, string>();
+
+  for (const system of typeSystems) {
+    const value = getParam(searchParams, `top:${system.id}`);
+
+    if (value) {
+      selected.set(system.id, value);
+    }
+  }
+
+  return selected;
+}
+
+function matchesSelectedTopTypes({
+  selectedTopTypeValueIds,
+  topTypes
+}: {
+  selectedTopTypeValueIds: Map<string, string>;
+  topTypes: CharacterTopType[];
+}) {
+  if (selectedTopTypeValueIds.size === 0) {
+    return true;
+  }
+
+  return Array.from(selectedTopTypeValueIds.entries()).every(
+    ([typeSystemId, typeValueId]) =>
+      topTypes.some(
+        (type) =>
+          type.typeSystemId === typeSystemId && type.typeValueId === typeValueId
+      )
+  );
+}
+
+function escapePostgrestLikePattern(value: string) {
+  return value
+    .replace(/[(),]/g, " ")
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_");
+}
+
+function CharacterPagination({
+  hasNext,
+  page,
+  searchParams
+}: {
+  hasNext: boolean;
+  page: number;
+  searchParams: SearchParams | undefined;
+}) {
+  if (page <= 1 && !hasNext) {
+    return null;
+  }
+
+  return (
+    <nav className="flex items-center justify-center gap-3">
+      {page > 1 ? (
+        <Link
+          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-ink"
+          href={createPageHref(searchParams, page - 1)}
+        >
+          前へ
+        </Link>
+      ) : null}
+      <span className="text-sm font-semibold text-slate-500">{page}ページ目</span>
+      {hasNext ? (
+        <Link
+          className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white"
+          href={createPageHref(searchParams, page + 1)}
+        >
+          次へ
+        </Link>
+      ) : null}
+    </nav>
+  );
+}
+
+function createPageHref(
+  searchParams: SearchParams | undefined,
+  nextPage: number
+) {
+  const params = createParamsWithout(searchParams, ["page"]);
+  params.set("page", String(nextPage));
+  return `/character-diagnoses?${params.toString()}`;
+}
+
+function createSortHref(searchParams: SearchParams | undefined, sort: string) {
+  const params = createParamsWithout(searchParams, ["page", "sort"]);
+
+  if (sort !== "latest") {
+    params.set("sort", sort);
+  }
+
+  const query = params.toString();
+  return query ? `/character-diagnoses?${query}` : "/character-diagnoses";
+}
+
+function createParamsWithout(
+  searchParams: SearchParams | undefined,
+  omittedKeys: string[]
+) {
+  const params = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(searchParams ?? {})) {
+    if (omittedKeys.includes(key)) {
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => params.append(key, item));
+    } else if (value) {
+      params.set(key, value);
+    }
+  }
+
+  return params;
 }
 
 function getTime(value: string) {

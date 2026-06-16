@@ -2,16 +2,25 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink, ImageUp, Sparkles } from "lucide-react";
+import { ArrowLeft, ExternalLink, ImageUp } from "lucide-react";
+import { CharacterDiagnosisCard } from "@/components/character-diagnoses/character-diagnosis-card";
+import { CharacterDiagnosisShareActions } from "@/components/character-diagnoses/character-diagnosis-share-actions";
 import { CharacterTypeVoteForm } from "@/components/character-diagnoses/character-type-vote-form";
 import { DeleteCharacterDiagnosisButton } from "@/components/character-diagnoses/delete-character-diagnosis-button";
+import { SectionHeader } from "@/components/ui/section-header";
+import { TypeVoteSummary } from "@/components/votes/type-vote-summary";
 import {
   removeCharacterDiagnosisImage,
   updateCharacterDiagnosisImage
 } from "@/lib/character-diagnoses/actions";
 import { getCharacterImageUrl } from "@/lib/character-diagnoses/images";
-import { SectionHeader } from "@/components/ui/section-header";
-import { TypeVoteSummary } from "@/components/votes/type-vote-summary";
+import {
+  buildCharacterVoteSummary,
+  getTopTypesBySystem,
+  type CharacterTypeVoteRow,
+  type TypeSystemForSummary,
+  type TypeValueForSummary
+} from "@/lib/character-diagnoses/vote-summary";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type CharacterDiagnosisRow = {
@@ -27,26 +36,6 @@ type CharacterDiagnosisRow = {
   image_path: string | null;
   related_url: string | null;
   work_title: string | null;
-};
-
-type TypeSystemRow = {
-  id: string;
-  name: string;
-  position: number | null;
-};
-
-type TypeValueRow = {
-  code: string;
-  id: string;
-  name: string;
-  position: number | null;
-  type_system_id: string;
-};
-
-type CharacterVoteRow = {
-  created_at: string;
-  type_system_id: string;
-  type_value_id: string;
 };
 
 type OwnVoteRow = {
@@ -125,12 +114,13 @@ export default async function CharacterDiagnosisDetailPage({
     .eq("is_active", true)
     .order("position", { ascending: true })
     .order("name", { ascending: true });
-  const typeSystems = (typeSystemRows ?? []) as TypeSystemRow[];
-  const typeValues = (typeValueRows ?? []) as TypeValueRow[];
+  const typeSystems = (typeSystemRows ?? []) as TypeSystemForSummary[];
+  const typeValues = (typeValueRows ?? []) as TypeValueForSummary[];
   const { data: voteRows } = await supabase
     .from("character_type_votes")
-    .select("type_system_id,type_value_id,created_at")
+    .select("character_diagnosis_id,type_system_id,type_value_id,created_at")
     .eq("character_diagnosis_id", character.id);
+  const votes = (voteRows ?? []) as CharacterTypeVoteRow[];
   const { data: ownVoteRows } = user
     ? await supabase
         .from("character_type_votes")
@@ -144,18 +134,20 @@ export default async function CharacterDiagnosisDetailPage({
       vote.type_value_id
     ])
   );
-  const summaryItems = buildSummaryItems({
+  const summaryItems = buildCharacterVoteSummary({
     typeSystems,
     typeValues,
-    votes: (voteRows ?? []) as CharacterVoteRow[]
+    votes
   });
+  const topTypes = getTopTypesBySystem(summaryItems);
   const creator = Array.isArray(character.creator)
     ? character.creator[0]
     : character.creator;
   const isCreator = user?.id === character.creator_user_id;
+  const characterUrl = `${getAppUrl()}/character-diagnoses/${character.id}`;
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[360px_1fr]">
+    <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[420px_1fr]">
       <aside className="space-y-4">
         <Link
           className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-ink"
@@ -165,44 +157,31 @@ export default async function CharacterDiagnosisDetailPage({
           キャラ診断へ戻る
         </Link>
 
-        <section className="overflow-hidden rounded-2xl border border-white bg-white/88 shadow-sm">
-          <div className="aspect-square bg-gradient-to-br from-teal-50 via-white to-violet-100">
-            {imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img alt="" className="h-full w-full object-cover" src={imageUrl} />
-            ) : (
-              <div className="grid h-full place-items-center text-ringViolet">
-                <Sparkles className="h-16 w-16" />
-              </div>
-            )}
-          </div>
-          <div className="p-5">
-            <p className="text-xs font-bold text-ringViolet">
-              {character.work_title ?? "作品名未設定"}
-            </p>
-            <h1 className="mt-1 text-2xl font-black text-ink">
-              {character.character_name}
-            </h1>
-            <p className="mt-2 text-xs font-semibold text-slate-500">
-              作成者: {creator?.display_name ?? "Typring user"}
-            </p>
-            {character.description ? (
-              <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                {character.description}
-              </p>
-            ) : null}
-            {character.related_url ? (
-              <a
-                className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-ringViolet"
-                href={character.related_url}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                関連URL
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            ) : null}
-          </div>
+        <CharacterDiagnosisCard
+          characterName={character.character_name}
+          description={character.description}
+          imageUrl={imageUrl}
+          topTypes={topTypes}
+          voteCount={votes.length}
+          workTitle={character.work_title}
+        />
+
+        <section className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
+          <p className="text-xs font-bold text-ringViolet">作成者</p>
+          <p className="mt-1 text-sm font-semibold text-slate-600">
+            {creator?.display_name ?? "Typring user"}
+          </p>
+          {character.related_url ? (
+            <a
+              className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-ringViolet"
+              href={character.related_url}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              関連URL
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          ) : null}
         </section>
 
         {isCreator ? (
@@ -238,10 +217,7 @@ export default async function CharacterDiagnosisDetailPage({
                   type="hidden"
                   value={character.id}
                 />
-                <button
-                  className="text-sm font-bold text-red-600"
-                  type="submit"
-                >
+                <button className="text-sm font-bold text-red-600" type="submit">
                   画像を外す
                 </button>
               </form>
@@ -272,6 +248,14 @@ export default async function CharacterDiagnosisDetailPage({
             {getErrorMessage(searchParams.error)}
           </p>
         ) : null}
+
+        <CharacterDiagnosisShareActions
+          characterName={character.character_name}
+          characterUrl={characterUrl}
+          imageUrl={imageUrl}
+          topTypes={topTypes}
+          workTitle={character.work_title}
+        />
 
         <SectionHeader
           eyebrow="Votes"
@@ -315,106 +299,18 @@ function getErrorMessage(error: string) {
   return messages[error] ?? error;
 }
 
-function buildSummaryItems({
-  typeSystems,
-  typeValues,
-  votes
-}: {
-  typeSystems: TypeSystemRow[];
-  typeValues: TypeValueRow[];
-  votes: CharacterVoteRow[];
-}) {
-  const counts = new Map<
-    string,
-    {
-      firstVotedAt: string | null;
-      typeSystemId: string;
-      typeValueId: string;
-      voteCount: number;
-    }
-  >();
-  const totals = new Map<string, number>();
+function getAppUrl() {
+  const explicitUrl = process.env.NEXT_PUBLIC_APP_URL;
 
-  for (const vote of votes) {
-    const key = `${vote.type_system_id}:${vote.type_value_id}`;
-    const current = counts.get(key);
-    counts.set(key, {
-      firstVotedAt: getEarlierDate(current?.firstVotedAt ?? null, vote.created_at),
-      typeSystemId: vote.type_system_id,
-      typeValueId: vote.type_value_id,
-      voteCount: (current?.voteCount ?? 0) + 1
-    });
-    totals.set(vote.type_system_id, (totals.get(vote.type_system_id) ?? 0) + 1);
+  if (explicitUrl) {
+    return explicitUrl.replace(/\/$/, "");
   }
 
-  return Array.from(counts.values())
-    .map((count) => {
-      const system = typeSystems.find((item) => item.id === count.typeSystemId);
-      const value = typeValues.find((item) => item.id === count.typeValueId);
-      const totalCount = totals.get(count.typeSystemId) ?? 0;
-
-      if (!system || !value || totalCount === 0) {
-        return null;
-      }
-
-      return {
-        firstVotedAt: count.firstVotedAt,
-        percentage: Math.round((count.voteCount / totalCount) * 100),
-        system: system.name,
-        systemPosition: system.position ?? 0,
-        totalCount,
-        value: value.name || value.code,
-        valuePosition: value.position ?? 0,
-        voteCount: count.voteCount
-      };
-    })
-    .filter(
-      (
-        item
-      ): item is {
-        firstVotedAt: string | null;
-        percentage: number;
-        system: string;
-        systemPosition: number;
-        totalCount: number;
-        value: string;
-        valuePosition: number;
-        voteCount: number;
-      } => item !== null
-    )
-    .sort((a, b) => {
-      if (a.systemPosition !== b.systemPosition) {
-        return a.systemPosition - b.systemPosition;
-      }
-
-      if (a.voteCount !== b.voteCount) {
-        return b.voteCount - a.voteCount;
-      }
-
-      const firstVoteDiff = getTime(a.firstVotedAt) - getTime(b.firstVotedAt);
-      if (firstVoteDiff !== 0) {
-        return firstVoteDiff;
-      }
-
-      return a.valuePosition - b.valuePosition;
-    });
-}
-
-function getEarlierDate(current: string | null, next: string) {
-  if (!current) {
-    return next;
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
   }
 
-  return getTime(current) <= getTime(next) ? current : next;
-}
-
-function getTime(value: string | null) {
-  if (!value) {
-    return Number.MAX_SAFE_INTEGER;
-  }
-
-  const time = new Date(value).getTime();
-  return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
+  return "http://localhost:3000";
 }
 
 function normalizeCharacter(data: unknown): CharacterDiagnosisRow {
