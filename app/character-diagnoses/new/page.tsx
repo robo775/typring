@@ -85,16 +85,15 @@ export default async function NewCharacterDiagnosisPage({
           </label>
 
           <label className="grid gap-2 text-sm font-semibold text-ink">
-            キャラクター画像URL
+            キャラクター画像
             <input
-              className={fieldClass}
-              maxLength={500}
-              name="image_url"
-              placeholder="https://..."
-              type="url"
+              accept="image/jpeg,image/png,image/webp"
+              className={fileFieldClass}
+              name="image_file"
+              type="file"
             />
             <span className="text-xs font-normal leading-5 text-slate-500">
-              画像を登録する場合は、利用権限のある画像を使用してください。
+              任意です。jpg / png / webp、5MB以下の画像を1枚だけ登録できます。画像を登録する場合は、利用権限のある画像を使用してください。
             </span>
           </label>
 
@@ -134,7 +133,10 @@ export default async function NewCharacterDiagnosisPage({
 
 function getErrorMessage(error: string) {
   const messages: Record<string, string> = {
-    character_name_required: "キャラクター名を入力してください。"
+    character_name_required: "キャラクター名を入力してください。",
+    image_required: "画像ファイルを選択してください。",
+    image_too_large: "画像は5MB以下にしてください。",
+    invalid_image_type: "画像はjpg / png / webpのみ登録できます。"
   };
 
   return messages[error] ?? error;
@@ -142,3 +144,6 @@ function getErrorMessage(error: string) {
 
 const fieldClass =
   "rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal outline-none transition focus:border-ringTeal focus:ring-2 focus:ring-teal-100";
+
+const fileFieldClass =
+  "rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal file:mr-3 file:rounded-full file:border-0 file:bg-ink file:px-3 file:py-2 file:text-xs file:font-bold file:text-white";

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Plus, Sparkles } from "lucide-react";
+import { getCharacterImageUrl } from "@/lib/character-diagnoses/images";
 import { SectionHeader } from "@/components/ui/section-header";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -19,7 +20,7 @@ type CharacterDiagnosisRow = {
     | { display_name: string; twitter_handle: string | null }[]
     | null;
   id: string;
-  image_url: string | null;
+  image_path: string | null;
   work_title: string | null;
 };
 
@@ -37,7 +38,7 @@ export default async function CharacterDiagnosesPage({
   const { data: rows } = await supabase
     .from("character_diagnoses")
     .select(
-      "id,work_title,character_name,image_url,created_at,creator:profiles!character_diagnoses_creator_user_id_fkey(display_name,twitter_handle)"
+      "id,work_title,character_name,image_path,created_at,creator:profiles!character_diagnoses_creator_user_id_fkey(display_name,twitter_handle)"
     )
     .is("deleted_at", null)
     .eq("is_public", true)
@@ -99,6 +100,7 @@ export default async function CharacterDiagnosesPage({
           {sortedCharacters.map((character) => (
             <CharacterCard
               character={character}
+              imageUrl={getCharacterImageUrl(supabase, character.image_path)}
               key={character.id}
               voteCount={voteCounts.get(character.id) ?? 0}
             />
@@ -138,9 +140,11 @@ function SortLink({
 
 function CharacterCard({
   character,
+  imageUrl,
   voteCount
 }: {
   character: CharacterDiagnosisRow;
+  imageUrl: string | null;
   voteCount: number;
 }) {
   const creator = Array.isArray(character.creator)
@@ -153,13 +157,9 @@ function CharacterCard({
       href={`/character-diagnoses/${character.id}`}
     >
       <div className="aspect-[4/3] bg-gradient-to-br from-teal-50 via-white to-violet-100">
-        {character.image_url ? (
+        {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            alt=""
-            className="h-full w-full object-cover"
-            src={character.image_url}
-          />
+          <img alt="" className="h-full w-full object-cover" src={imageUrl} />
         ) : (
           <div className="grid h-full place-items-center text-ringViolet">
             <Sparkles className="h-10 w-10" />

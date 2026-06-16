@@ -2,9 +2,14 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink, Sparkles } from "lucide-react";
+import { ArrowLeft, ExternalLink, ImageUp, Sparkles } from "lucide-react";
 import { CharacterTypeVoteForm } from "@/components/character-diagnoses/character-type-vote-form";
 import { DeleteCharacterDiagnosisButton } from "@/components/character-diagnoses/delete-character-diagnosis-button";
+import {
+  removeCharacterDiagnosisImage,
+  updateCharacterDiagnosisImage
+} from "@/lib/character-diagnoses/actions";
+import { getCharacterImageUrl } from "@/lib/character-diagnoses/images";
 import { SectionHeader } from "@/components/ui/section-header";
 import { TypeVoteSummary } from "@/components/votes/type-vote-summary";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -19,7 +24,7 @@ type CharacterDiagnosisRow = {
   creator_user_id: string;
   description: string | null;
   id: string;
-  image_url: string | null;
+  image_path: string | null;
   related_url: string | null;
   work_title: string | null;
 };
@@ -80,7 +85,13 @@ export default async function CharacterDiagnosisDetailPage({
   searchParams
 }: {
   params: { id: string };
-  searchParams?: { created?: string; error?: string; voted?: string };
+  searchParams?: {
+    created?: string;
+    error?: string;
+    image_removed?: string;
+    image_updated?: string;
+    voted?: string;
+  };
 }) {
   const supabase = createSupabaseServerClient();
   const {
@@ -89,7 +100,7 @@ export default async function CharacterDiagnosisDetailPage({
   const { data: characterData } = await supabase
     .from("character_diagnoses")
     .select(
-      "id,creator_user_id,work_title,character_name,image_url,description,related_url,created_at,creator:profiles!character_diagnoses_creator_user_id_fkey(display_name,twitter_handle)"
+      "id,creator_user_id,work_title,character_name,image_path,description,related_url,created_at,creator:profiles!character_diagnoses_creator_user_id_fkey(display_name,twitter_handle)"
     )
     .eq("id", params.id)
     .is("deleted_at", null)
@@ -101,6 +112,7 @@ export default async function CharacterDiagnosisDetailPage({
   }
 
   const character = normalizeCharacter(characterData);
+  const imageUrl = getCharacterImageUrl(supabase, character.image_path);
   const { data: typeSystemRows } = await supabase
     .from("type_systems")
     .select("id,name,position")
@@ -155,13 +167,9 @@ export default async function CharacterDiagnosisDetailPage({
 
         <section className="overflow-hidden rounded-2xl border border-white bg-white/88 shadow-sm">
           <div className="aspect-square bg-gradient-to-br from-teal-50 via-white to-violet-100">
-            {character.image_url ? (
+            {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                alt=""
-                className="h-full w-full object-cover"
-                src={character.image_url}
-              />
+              <img alt="" className="h-full w-full object-cover" src={imageUrl} />
             ) : (
               <div className="grid h-full place-items-center text-ringViolet">
                 <Sparkles className="h-16 w-16" />
@@ -198,6 +206,50 @@ export default async function CharacterDiagnosisDetailPage({
         </section>
 
         {isCreator ? (
+          <section className="rounded-2xl border border-white bg-white/88 p-4 shadow-sm">
+            <h2 className="text-sm font-black text-ink">画像を変更</h2>
+            <form action={updateCharacterDiagnosisImage} className="mt-3 grid gap-3">
+              <input
+                name="character_diagnosis_id"
+                type="hidden"
+                value={character.id}
+              />
+              <input
+                accept="image/jpeg,image/png,image/webp"
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-ink file:px-3 file:py-2 file:text-xs file:font-bold file:text-white"
+                name="image_file"
+                type="file"
+              />
+              <p className="text-xs leading-5 text-slate-500">
+                jpg / png / webp、5MB以下。登録すると現在の画像と差し替わります。
+              </p>
+              <button
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-bold text-white"
+                type="submit"
+              >
+                <ImageUp className="h-4 w-4" />
+                画像を保存
+              </button>
+            </form>
+            {character.image_path ? (
+              <form action={removeCharacterDiagnosisImage} className="mt-3">
+                <input
+                  name="character_diagnosis_id"
+                  type="hidden"
+                  value={character.id}
+                />
+                <button
+                  className="text-sm font-bold text-red-600"
+                  type="submit"
+                >
+                  画像を外す
+                </button>
+              </form>
+            ) : null}
+          </section>
+        ) : null}
+
+        {isCreator ? (
           <DeleteCharacterDiagnosisButton characterId={character.id} />
         ) : null}
       </aside>
@@ -206,12 +258,18 @@ export default async function CharacterDiagnosisDetailPage({
         {searchParams?.created ? (
           <StatusMessage>キャラクター診断を作成しました。</StatusMessage>
         ) : null}
+        {searchParams?.image_updated ? (
+          <StatusMessage>画像を更新しました。</StatusMessage>
+        ) : null}
+        {searchParams?.image_removed ? (
+          <StatusMessage>画像を外しました。</StatusMessage>
+        ) : null}
         {searchParams?.voted ? (
           <StatusMessage>投票を保存しました。</StatusMessage>
         ) : null}
         {searchParams?.error ? (
           <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {searchParams.error}
+            {getErrorMessage(searchParams.error)}
           </p>
         ) : null}
 
@@ -245,6 +303,16 @@ function StatusMessage({ children }: { children: ReactNode }) {
       {children}
     </p>
   );
+}
+
+function getErrorMessage(error: string) {
+  const messages: Record<string, string> = {
+    image_required: "画像ファイルを選択してください。",
+    image_too_large: "画像は5MB以下にしてください。",
+    invalid_image_type: "画像はjpg / png / webpのみ登録できます。"
+  };
+
+  return messages[error] ?? error;
 }
 
 function buildSummaryItems({
