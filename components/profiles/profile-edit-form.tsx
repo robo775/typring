@@ -17,6 +17,7 @@ type TypeSystemOption = {
 type ProfileEditFormProps = {
   allowExternalTyping: boolean;
   bio: string;
+  currentExternalTypingTypeSystemIds: Set<string>;
   currentTypeValueIds: Map<string, string>;
   displayName: string;
   typeSystems: TypeSystemOption[];
@@ -26,6 +27,7 @@ type ProfileEditFormProps = {
 export function ProfileEditForm({
   allowExternalTyping,
   bio,
+  currentExternalTypingTypeSystemIds,
   currentTypeValueIds,
   displayName,
   typeSystems,
@@ -59,7 +61,7 @@ export function ProfileEditForm({
         defaultChecked={allowExternalTyping}
         description="OFFにすると、プロフィール上の他者診断結果と投票フォームを非表示にします。"
         name="allow_external_typing"
-        title="他ユーザーからの類型予想を受け付ける"
+        title="他ユーザーからの他者診断を受け付ける"
       />
 
       <div className="grid gap-4">
@@ -72,26 +74,43 @@ export function ProfileEditForm({
           const values = typeValues.filter(
             (value) => value.type_system_id === system.id
           );
+          const hasTypeValue = currentTypeValueIds.has(system.id);
 
           return (
-            <label
-              className="grid gap-2 text-sm font-semibold text-ink"
+            <div
+              className="grid gap-2 rounded-2xl border border-slate-100 bg-slate-50 p-3 text-sm"
               key={system.id}
             >
-              {system.name}
-              <select
-                className={fieldClass}
-                defaultValue={currentTypeValueIds.get(system.id) ?? ""}
-                name={`type:${system.id}`}
-              >
-                <option value="">未選択</option>
-                {values.map((value) => (
-                  <option key={value.id} value={value.id}>
-                    {value.name || value.code}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <label className="grid flex-1 gap-2 font-semibold text-ink">
+                  {system.name}
+                  <select
+                    className={fieldClass}
+                    defaultValue={currentTypeValueIds.get(system.id) ?? ""}
+                    name={`type:${system.id}`}
+                  >
+                    <option value="">未選択</option>
+                    {values.map((value) => (
+                      <option key={value.id} value={value.id}>
+                        {value.name || value.code}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+                  <input
+                    defaultChecked={
+                      hasTypeValue
+                        ? currentExternalTypingTypeSystemIds.has(system.id)
+                        : true
+                    }
+                    name={`allow_type_vote:${system.id}`}
+                    type="checkbox"
+                  />
+                  他者診断を受け付ける
+                </label>
+              </div>
+            </div>
           );
         })}
       </div>

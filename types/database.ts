@@ -143,6 +143,7 @@ export type Database = {
       };
       user_types: {
         Row: {
+          allow_external_typing: boolean;
           created_at: string;
           type_system_id: string;
           type_value_id: string;
@@ -150,6 +151,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          allow_external_typing?: boolean;
           created_at?: string;
           type_system_id: string;
           type_value_id: string;
@@ -157,6 +159,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          allow_external_typing?: boolean;
           created_at?: string;
           type_system_id?: string;
           type_value_id?: string;

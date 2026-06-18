@@ -48,8 +48,19 @@ export function TypeVoteForm({
     );
   }
 
+  if (typeSystems.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-5 text-sm text-slate-500">
+        このユーザーは、現在投票できる類型を公開していません。
+      </div>
+    );
+  }
+
   return (
-    <form action={submitTypeVotes} className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm">
+    <form
+      action={submitTypeVotes}
+      className="rounded-2xl border border-white bg-white/88 p-5 shadow-sm"
+    >
       <input name="target_user_id" type="hidden" value={targetUserId} />
       <input name="handle" type="hidden" value={handle} />
 
@@ -60,7 +71,10 @@ export function TypeVoteForm({
           );
 
           return (
-            <label className="grid gap-2 text-sm font-semibold text-ink" key={system.id}>
+            <label
+              className="grid gap-2 text-sm font-semibold text-ink"
+              key={system.id}
+            >
               {system.name}
               <select
                 className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal outline-none transition focus:border-ringTeal focus:ring-2 focus:ring-teal-100"

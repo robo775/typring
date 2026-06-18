@@ -70,7 +70,7 @@ export default async function MePage({
     .order("name", { ascending: true });
   const { data: userTypeRows } = await supabase
     .from("user_types")
-    .select("type_system_id,type_value_id")
+    .select("allow_external_typing,type_system_id,type_value_id")
     .eq("user_id", user.id);
 
   const typeSystems = typeSystemRows ?? [];
@@ -81,6 +81,11 @@ export default async function MePage({
   const bio = profile?.bio ?? "";
   const currentTypeValueIds = new Map(
     userTypes.map((userType) => [userType.type_system_id, userType.type_value_id])
+  );
+  const currentExternalTypingTypeSystemIds = new Set(
+    userTypes
+      .filter((userType) => userType.allow_external_typing ?? true)
+      .map((userType) => userType.type_system_id)
   );
   const previewTypes = typeSystems
     .map((system) => {
@@ -148,6 +153,7 @@ export default async function MePage({
           <ProfileEditForm
             allowExternalTyping={visibilitySettings?.allow_external_typing ?? true}
             bio={bio}
+            currentExternalTypingTypeSystemIds={currentExternalTypingTypeSystemIds}
             currentTypeValueIds={currentTypeValueIds}
             displayName={displayName}
             typeSystems={typeSystems}

@@ -52,6 +52,8 @@ export async function updateMyProfile(formData: FormData) {
   const typeSelections = Array.from(formData.entries())
     .filter(([key]) => key.startsWith("type:"))
     .map(([key, value]) => ({
+      allowExternalTyping:
+        formData.get(`allow_type_vote:${key.replace("type:", "")}`) === "on",
       typeSystemId: key.replace("type:", ""),
       typeValueId: typeof value === "string" ? value : ""
     }));
@@ -77,6 +79,7 @@ export async function updateMyProfile(formData: FormData) {
 
     const { error } = await supabase.from("user_types").upsert(
       {
+        allow_external_typing: selection.allowExternalTyping,
         type_system_id: selection.typeSystemId,
         type_value_id: selection.typeValueId,
         user_id: user.id

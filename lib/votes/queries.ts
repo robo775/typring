@@ -63,6 +63,26 @@ export async function getTopVotedTypesForUsers(
       };
     })
   );
+  const { data: allowedTypeRows } = await supabase
+    .from("user_types")
+    .select("allow_external_typing,type_system_id,user_id")
+    .in("user_id", uniqueUserIds);
+  const allowedTypeSystemIdsByUserId = new Map<string, Set<string>>();
+
+  for (const row of (allowedTypeRows ?? []) as Array<{
+    allow_external_typing?: boolean;
+    type_system_id: string;
+    user_id: string;
+  }>) {
+    if (row.allow_external_typing === false) {
+      continue;
+    }
+
+    const ids = allowedTypeSystemIdsByUserId.get(row.user_id) ?? new Set<string>();
+    ids.add(row.type_system_id);
+    allowedTypeSystemIdsByUserId.set(row.user_id, ids);
+  }
+
   const allRows = summaries.flatMap(({ rows }) => rows);
   const systemIds = Array.from(new Set(allRows.map((row) => row.type_system_id)));
   const valueIds = Array.from(new Set(allRows.map((row) => row.type_value_id)));
@@ -88,7 +108,11 @@ export async function getTopVotedTypesForUsers(
   );
 
   for (const summary of summaries) {
-    const topRows = getTopRowsBySystem(summary.rows);
+    const allowedTypeSystemIds =
+      allowedTypeSystemIdsByUserId.get(summary.userId) ?? new Set<string>();
+    const topRows = getTopRowsBySystem(
+      summary.rows.filter((row) => allowedTypeSystemIds.has(row.type_system_id))
+    );
     const votedTypes = topRows
       .map((row) => {
         const system = systems.get(row.type_system_id);
