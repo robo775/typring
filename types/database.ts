@@ -198,6 +198,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_type_vote_settings: {
+        Row: {
+          allow_external_typing: boolean;
+          created_at: string;
+          type_system_id: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          allow_external_typing?: boolean;
+          created_at?: string;
+          type_system_id: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          allow_external_typing?: boolean;
+          created_at?: string;
+          type_system_id?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       profile_introductions: {
         Row: {
           author_user_id: string;

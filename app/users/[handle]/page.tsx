@@ -21,7 +21,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getTopVotedTypesForUser } from "@/lib/votes/queries";
 
 type UserTypeRow = {
-  allow_external_typing?: boolean;
   type_system_id: string;
   type_value_id: string;
 };
@@ -89,9 +88,13 @@ export default async function UserProfilePage({
 
   const { data: userTypeRows } = await supabase
     .from("user_types")
-    .select("allow_external_typing,type_system_id,type_value_id")
+    .select("type_system_id,type_value_id")
     .eq("user_id", profile.id);
   const userTypes = (userTypeRows ?? []) as UserTypeRow[];
+  const { data: typeVoteSettingRows } = await supabase
+    .from("user_type_vote_settings")
+    .select("allow_external_typing,type_system_id")
+    .eq("user_id", profile.id);
   const { data: activeTypeSystemRows } = await supabase
     .from("type_systems")
     .select("id,code,name,position")
@@ -107,16 +110,16 @@ export default async function UserProfilePage({
 
   const activeTypeSystems = activeTypeSystemRows ?? [];
   const activeTypeValues = activeTypeValueRows ?? [];
-  const allowedExternalTypingTypeSystemIds = new Set(
-    userTypes
-      .filter((type) => type.allow_external_typing ?? true)
-      .map((type) => type.type_system_id)
+  const disabledExternalTypingTypeSystemIds = new Set(
+    (typeVoteSettingRows ?? [])
+      .filter((setting) => setting.allow_external_typing === false)
+      .map((setting) => setting.type_system_id)
   );
   const voteableTypeSystems = activeTypeSystems.filter((system) =>
-    allowedExternalTypingTypeSystemIds.has(system.id)
+    !disabledExternalTypingTypeSystemIds.has(system.id)
   );
   const voteableTypeValues = activeTypeValues.filter((value) =>
-    allowedExternalTypingTypeSystemIds.has(value.type_system_id)
+    !disabledExternalTypingTypeSystemIds.has(value.type_system_id)
   );
   const profileTypes = activeTypeSystems
     .map((system) => {

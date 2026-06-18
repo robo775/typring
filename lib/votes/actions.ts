@@ -35,13 +35,13 @@ export async function submitTypeVotes(formData: FormData) {
     redirect(`/users/${handle}?error=external_typing_disabled`);
   }
 
-  const { data: allowedTypeRows } = await supabase
-    .from("user_types")
+  const { data: disabledTypeRows } = await supabase
+    .from("user_type_vote_settings")
     .select("type_system_id")
     .eq("user_id", targetUserId)
-    .eq("allow_external_typing", true);
-  const allowedTypeSystemIds = new Set(
-    (allowedTypeRows ?? []).map((row) => row.type_system_id)
+    .eq("allow_external_typing", false);
+  const disabledTypeSystemIds = new Set(
+    (disabledTypeRows ?? []).map((row) => row.type_system_id)
   );
 
   const selections = Array.from(formData.entries())
@@ -68,7 +68,7 @@ export async function submitTypeVotes(formData: FormData) {
       continue;
     }
 
-    if (!allowedTypeSystemIds.has(selection.typeSystemId)) {
+    if (disabledTypeSystemIds.has(selection.typeSystemId)) {
       redirect(`/users/${handle}?error=type_vote_disabled`);
     }
 

@@ -63,6 +63,23 @@ export async function updateMyProfile(formData: FormData) {
       continue;
     }
 
+    const { error: settingError } = await supabase
+      .from("user_type_vote_settings")
+      .upsert(
+        {
+          allow_external_typing: selection.allowExternalTyping,
+          type_system_id: selection.typeSystemId,
+          user_id: user.id
+        },
+        {
+          onConflict: "user_id,type_system_id"
+        }
+      );
+
+    if (settingError) {
+      redirect(`/me?error=${encodeURIComponent(settingError.message)}`);
+    }
+
     if (!selection.typeValueId) {
       const { error } = await supabase
         .from("user_types")

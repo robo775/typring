@@ -70,7 +70,11 @@ export default async function MePage({
     .order("name", { ascending: true });
   const { data: userTypeRows } = await supabase
     .from("user_types")
-    .select("allow_external_typing,type_system_id,type_value_id")
+    .select("type_system_id,type_value_id")
+    .eq("user_id", user.id);
+  const { data: typeVoteSettingRows } = await supabase
+    .from("user_type_vote_settings")
+    .select("allow_external_typing,type_system_id")
     .eq("user_id", user.id);
 
   const typeSystems = typeSystemRows ?? [];
@@ -83,9 +87,14 @@ export default async function MePage({
     userTypes.map((userType) => [userType.type_system_id, userType.type_value_id])
   );
   const currentExternalTypingTypeSystemIds = new Set(
-    userTypes
-      .filter((userType) => userType.allow_external_typing ?? true)
-      .map((userType) => userType.type_system_id)
+    typeSystems
+      .filter((system) => {
+        const setting = (typeVoteSettingRows ?? []).find(
+          (row) => row.type_system_id === system.id
+        );
+        return setting?.allow_external_typing ?? true;
+      })
+      .map((system) => system.id)
   );
   const previewTypes = typeSystems
     .map((system) => {
